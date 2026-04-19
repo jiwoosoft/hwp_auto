@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import base64
 import json
 import os
 from http import HTTPStatus
@@ -35,6 +36,7 @@ class GUIHandler(BaseHTTPRequestHandler):
                     "integration": rhwp_integration_status_tool(),
                     "save": rhwp_save_status_tool(),
                     "allowed_workspace": str(SETTINGS.allowed_workspace),
+                    "editor_url": "http://127.0.0.1:7700/",
                 }
             )
             return
@@ -54,6 +56,7 @@ class GUIHandler(BaseHTTPRequestHandler):
 
         routes = {
             "/api/browse": self._browse,
+            "/api/file-bytes": self._file_bytes,
             "/api/open": lambda data: open_document_tool(
                 path=str(data.get("path", "")),
                 readonly=bool(data.get("readonly", False)),
@@ -129,6 +132,28 @@ class GUIHandler(BaseHTTPRequestHandler):
                 "current_path": str(candidate),
                 "parent_path": str(parent),
                 "entries": entries,
+            },
+        }
+
+    def _file_bytes(self, data: dict[str, object]) -> dict[str, object]:
+        requested = str(data.get("path") or "")
+        candidate = Path(requested).expanduser().resolve()
+        try:
+            _ = candidate.relative_to(SETTINGS.allowed_workspace)
+        except ValueError:
+            return {"ok": False, "message": "Path is outside the allowed workspace."}
+        if not candidate.exists() or not candidate.is_file():
+            return {"ok": False, "message": "File not found."}
+        raw = candidate.read_bytes()
+        encoded = base64.b64encode(raw).decode("ascii")
+        return {
+            "ok": True,
+            "message": "file bytes loaded",
+            "data": {
+                "path": str(candidate),
+                "file_name": candidate.name,
+                "base64": encoded,
+                "size": len(raw),
             },
         }
 

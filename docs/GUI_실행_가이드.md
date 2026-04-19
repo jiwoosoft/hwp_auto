@@ -1,24 +1,32 @@
 # GUI 실행 가이드
 
 ## 현재 GUI 성격
-현재 GUI는 완성형 에디터가 아니라,
-`master-of-hwp` MCP 코어를 로컬에서 직접 검증하기 위한 **로컬 웹 워크벤치**다.
+현재 GUI는 완성형 에디터라기보다,
+**실제 rhwp 에디터를 메인에 띄우고 오른쪽에서 MCP 기반 작업을 제어하는 로컬 워크벤치**다.
 
-## 실행
-프로젝트 루트에서:
+## 실행 순서
+두 프로세스를 함께 띄운다.
 
+### 1. rhwp-studio 에디터 실행
+```bash
+./scripts/run_rhwp_studio.sh
+```
+기본 주소:
+```text
+http://127.0.0.1:7700
+```
+
+### 2. GUI 워크벤치 실행
 ```bash
 ./scripts/run_gui.sh
 ```
-
-기본 접속 주소:
-
+기본 주소:
 ```text
 http://127.0.0.1:8876
 ```
 
 ## 환경변수
-### 포트 변경
+### GUI 포트 변경
 ```bash
 MASTER_OF_HWP_GUI_PORT=8899 ./scripts/run_gui.sh
 ```
@@ -32,9 +40,9 @@ MASTER_OF_HWP_ALLOWED_WORKSPACE=/Users/moon/Documents ./scripts/run_gui.sh
 ```
 
 ## 현재 가능한 것
-- 상태 확인
 - 로컬 파일 브라우저로 HWP/HWPX/TXT/MD 탐색
-- 문서 열기
+- 선택한 파일을 GUI 세션에 열기
+- 실제 rhwp-studio 에디터를 메인 pane에 띄우기
 - 텍스트 추출
 - 구조 추출
 - 문단 치환
@@ -43,15 +51,14 @@ MASTER_OF_HWP_ALLOWED_WORKSPACE=/Users/moon/Documents ./scripts/run_gui.sh
 - 저장본 검증
 
 ## 사용 흐름
-1. 왼쪽 상단의 "로컬 문서 찾기"에서 폴더를 탐색한다.
-2. HWP/HWPX 파일을 클릭하면 파일 경로가 자동으로 채워진다.
-3. "문서 열기"를 눌러 세션을 만든다.
-4. "텍스트 추출" 또는 "구조 추출"로 현재 문서 상태를 확인한다.
-5. 문단 인덱스를 넣고 치환/삽입을 실행한다.
-6. 저장 경로를 확인한 뒤 저장하고, 저장본 검증을 실행한다.
+1. `run_rhwp_studio.sh` 실행
+2. `run_gui.sh` 실행
+3. GUI에서 로컬 파일을 탐색해 선택
+4. `문서 열기`를 누르면 세션이 열리고, 에디터 iframe에 문서가 로드된다
+5. 오른쪽 패널에서 텍스트 추출/구조 추출/문단 편집/저장/검증 수행
 
 ## 현재 한계
-- GUI는 현재 MCP tool을 직접 호출하는 local web shell이다.
-- 시각적 문서 렌더링 편집기까지는 아니다.
-- 결과 창은 현재 JSON 중심이다.
+- 에디터 pane은 실제 rhwp-studio이지만, GUI는 아직 얇은 조작 패널이다.
+- 브라우저 자동화 환경에서는 iframe 내부 편집까지 완전히 검증하지 못했다.
 - table creation roundtrip persistence는 아직 실패 상태다.
+- 완전한 시각적 diff/preview UX는 아직 미완성이다.

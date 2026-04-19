@@ -4,6 +4,9 @@ const state = {
   lastText: '',
   lastStructure: null,
   history: [],
+  editorReady: false,
+  editorRequestId: 0,
+  pendingEditorRequests: new Map(),
 };
 
 const els = {
@@ -12,7 +15,6 @@ const els = {
   sessionText: document.getElementById('sessionText'),
   documentMeta: document.getElementById('documentMeta'),
   outputPane: document.getElementById('outputPane'),
-  previewPane: document.getElementById('previewPane'),
   structurePane: document.getElementById('structurePane'),
   structureSummary: document.getElementById('structureSummary'),
   historyPane: document.getElementById('historyPane'),
@@ -40,6 +42,7 @@ const els = {
   saveBtn: document.getElementById('saveBtn'),
   validateBtn: document.getElementById('validateBtn'),
   clearBtn: document.getElementById('clearBtn'),
+  editorFrame: document.getElementById('editorFrame'),
 };
 
 function renderOutput(label, payload) {
@@ -84,11 +87,6 @@ function updateMeta({ format = '-', chars = '-', tables = '-', path = '' } = {})
   els.metaChars.textContent = `글자 수: ${chars}`;
   els.metaTables.textContent = `테이블: ${tables}`;
   els.documentMeta.textContent = path ? `현재 대상: ${path}` : '문서를 열면 형식, 글자 수, 테이블 수를 보여준다.';
-}
-
-function renderPreview(text) {
-  state.lastText = text || '';
-  els.previewPane.textContent = state.lastText || '추출된 문서 텍스트가 여기에 표시된다.';
 }
 
 function renderStructure(structure) {
@@ -187,6 +185,74 @@ async function refreshStatus() {
   renderOutput('STATUS', payload);
 }
 
+function base64ToArrayBuffer(base64) {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+  return bytes.buffer;
+}
+
+function sendEditorRequest(method, params = {}) {
+  if (!els.editorFrame?.contentWindow) {
+    return Promise.reject(new Error('Editor frame is not available'));
+  }
+  state.editorRequestId += 1;
+  const id = `req-${state.editorRequestId}`;
+  return new Promise((resolve, reject) => {
+    state.pendingEditorRequests.set(id, { resolve, reject });
+    els.editorFrame.contentWindow.postMessage(
+      {
+        type: 'rhwp-request',
+        id,
+        method,
+        params,
+      },
+      '*',
+    );
+  });
+}
+
+window.addEventListener('message', (event) => {
+  const msg = event.data;
+  if (!msg || msg.type !== 'rhwp-response' || !msg.id) return;
+  const pending = state.pendingEditorRequests.get(msg.id);
+  if (!pending) return;
+  state.pendingEditorRequests.delete(msg.id);
+  if (msg.error) {
+    pending.reject(new Error(msg.error));
+    return;
+  }
+  pending.resolve(msg.result);
+});
+
+els.editorFrame.addEventListener('load', async () => {
+  try {
+    await sendEditorRequest('ready');
+    state.editorReady = true;
+    addHistory('에디터 준비', 'rhwp-studio 에디터가 준비되었다.');
+  } catch (error) {
+    state.editorReady = false;
+    addHistory('에디터 준비 실패', String(error));
+  }
+});
+
+async function loadIntoEditor(path) {
+  const payload = await postJson('/api/file-bytes', { path });
+  if (!payload.ok) {
+    renderOutput('EDITOR_LOAD_FAILED', payload);
+    return false;
+  }
+  const buffer = base64ToArrayBuffer(payload.data.base64);
+  const result = await sendEditorRequest('loadFile', {
+    data: buffer,
+    fileName: payload.data.file_name,
+  });
+  addHistory('에디터 로드', `${payload.data.file_name} / ${result.pageCount || '?'}페이지`);
+  return true;
+}
+
 async function openDocument() {
   const payload = await postJson('/api/open', {
     path: els.pathInput.value,
@@ -197,6 +263,13 @@ async function openDocument() {
   updateMeta({ path: payload.data?.path || els.pathInput.value });
   addHistory('문서 열기', payload.data?.path || els.pathInput.value);
   renderOutput('OPEN_DOCUMENT', payload);
+  if (payload.ok && state.editorReady) {
+    try {
+      await loadIntoEditor(payload.data.path || els.pathInput.value);
+    } catch (error) {
+      addHistory('에디터 로드 실패', String(error));
+    }
+  }
 }
 
 async function extractText() {
@@ -205,7 +278,7 @@ async function extractText() {
     path: state.documentId ? '' : els.pathInput.value,
   });
   if (payload.ok) {
-    renderPreview(payload.data.text || '');
+    state.lastText = payload.data.text || '';
     updateMeta({
       format: payload.data.source_format || '-',
       chars: payload.data.char_count || '-',
