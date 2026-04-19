@@ -7,6 +7,7 @@ const state = {
   editorReady: false,
   editorRequestId: 0,
   pendingEditorRequests: new Map(),
+  aiPreview: null,
 };
 
 const els = {
@@ -43,6 +44,11 @@ const els = {
   validateBtn: document.getElementById('validateBtn'),
   clearBtn: document.getElementById('clearBtn'),
   editorFrame: document.getElementById('editorFrame'),
+  aiTaskType: document.getElementById('aiTaskType'),
+  aiInstruction: document.getElementById('aiInstruction'),
+  aiPreviewBtn: document.getElementById('aiPreviewBtn'),
+  aiApplyBtn: document.getElementById('aiApplyBtn'),
+  aiPreviewPane: document.getElementById('aiPreviewPane'),
 };
 
 function renderOutput(label, payload) {
@@ -87,6 +93,15 @@ function updateMeta({ format = '-', chars = '-', tables = '-', path = '' } = {})
   els.metaChars.textContent = `글자 수: ${chars}`;
   els.metaTables.textContent = `테이블: ${tables}`;
   els.documentMeta.textContent = path ? `현재 대상: ${path}` : '문서를 열면 형식, 글자 수, 테이블 수를 보여준다.';
+}
+
+function renderAIPreview(preview) {
+  state.aiPreview = preview;
+  if (!preview) {
+    els.aiPreviewPane.value = '아직 AI 미리보기가 없다.';
+    return;
+  }
+  els.aiPreviewPane.value = `${preview.title}\n\n${preview.preview}\n\n${preview.content}`;
 }
 
 function renderStructure(structure) {
@@ -314,6 +329,38 @@ async function reloadDocumentState() {
   await extractStructure();
 }
 
+async function previewWithClaude() {
+  const payload = await postJson('/api/ai/preview', {
+    document_id: state.documentId,
+    paragraph_index: Number(els.paragraphIndex.value),
+    task_type: els.aiTaskType.value,
+    instruction: els.aiInstruction.value,
+  });
+  if (payload.ok) {
+    renderAIPreview(payload.data);
+    addHistory('Claude 미리보기', `${payload.data.task_type} / 문단 ${payload.data.paragraph_index}`);
+  }
+  renderOutput('AI_PREVIEW', payload);
+}
+
+async function applyAIPreview() {
+  if (!state.aiPreview) {
+    renderOutput('AI_APPLY_SKIPPED', { ok: false, message: '적용할 AI 미리보기가 없습니다.' });
+    return;
+  }
+  const payload = await postJson('/api/ai/apply', {
+    document_id: state.documentId,
+    task_type: state.aiPreview.task_type,
+    paragraph_index: state.aiPreview.paragraph_index,
+    content: state.aiPreview.content,
+  });
+  if (payload.ok) {
+    addHistory('Claude 적용', `${state.aiPreview.task_type} 결과를 문서에 반영`);
+    await reloadDocumentState();
+  }
+  renderOutput('AI_APPLY', payload);
+}
+
 async function replaceParagraph() {
   const payload = await postJson('/api/replace', {
     document_id: state.documentId,
@@ -373,6 +420,8 @@ els.usePathBtn.addEventListener('click', () => {
 els.openBtn.addEventListener('click', openDocument);
 els.textBtn.addEventListener('click', extractText);
 els.structureBtn.addEventListener('click', extractStructure);
+els.aiPreviewBtn.addEventListener('click', previewWithClaude);
+els.aiApplyBtn.addEventListener('click', applyAIPreview);
 els.replaceBtn.addEventListener('click', replaceParagraph);
 els.insertBtn.addEventListener('click', insertParagraph);
 els.saveBtn.addEventListener('click', saveDocument);
@@ -385,5 +434,6 @@ updateSessionText();
 updateMeta();
 renderHistory();
 renderStructure(null);
+renderAIPreview(null);
 refreshStatus();
 browse('/Users/moon');

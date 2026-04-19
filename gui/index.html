@@ -11,8 +11,8 @@
       <header class="hero">
         <div>
           <p class="eyebrow">master-of-hwp</p>
-          <h1>rhwp 에디터 + AI 작업 패널</h1>
-          <p class="subtitle">파일을 고르면 실제 rhwp 한글 에디터가 메인에 열리고, 오른쪽에서 읽기·편집·저장을 제어한다.</p>
+          <h1>rhwp 에디터 + Claude 작업 패널</h1>
+          <p class="subtitle">파일을 고르면 실제 rhwp 한글 에디터가 메인에 열리고, 오른쪽에서 Claude Code 기반 자연어 편집 작업을 수행한다.</p>
         </div>
         <div class="hero-actions">
           <button id="refreshStatus" class="secondary">상태 새로고침</button>
@@ -86,7 +86,36 @@
           <button id="openBtn">문서 열기</button>
 
           <div class="section-header top-gap">
-            <h2>3. 문서 읽기</h2>
+            <h2>3. Claude 작업 패널</h2>
+            <p class="hint">현재 문단을 요약하거나 다시 쓰게 하고, 결과를 미리 본 뒤 적용한다.</p>
+          </div>
+          <label>
+            작업 유형
+            <select id="aiTaskType">
+              <option value="rewrite">문단 다시쓰기</option>
+              <option value="summarize">문단 요약</option>
+              <option value="insert">뒤에 새 문단 생성</option>
+            </select>
+          </label>
+          <label>
+            대상 문단 인덱스
+            <input id="paragraphIndex" type="number" value="5" />
+          </label>
+          <label>
+            자연어 요청
+            <textarea id="aiInstruction">이 문단을 더 명확하고 자연스럽게 다듬어줘.</textarea>
+          </label>
+          <div class="actions">
+            <button id="aiPreviewBtn">Claude 미리보기</button>
+            <button id="aiApplyBtn" class="secondary">미리보기 적용</button>
+          </div>
+          <label>
+            AI 결과 미리보기
+            <textarea id="aiPreviewPane">아직 AI 미리보기가 없다.</textarea>
+          </label>
+
+          <div class="section-header top-gap">
+            <h2>4. 빠른 읽기</h2>
             <p class="hint">현재 문서를 요약/구조화해서 오른쪽 패널에 보여준다.</p>
           </div>
           <div class="actions">
@@ -95,13 +124,9 @@
           </div>
 
           <div class="section-header top-gap">
-            <h2>4. 문단 편집</h2>
+            <h2>5. 수동 문단 편집</h2>
             <p class="hint">지금은 문단 단위 치환/삽입이 가장 안정적이다.</p>
           </div>
-          <label>
-            대상 문단 인덱스
-            <input id="paragraphIndex" type="number" value="5" />
-          </label>
           <label>
             치환 텍스트
             <textarea id="replaceText">□ master-of-hwp GUI에서 수정한 문단입니다.</textarea>
@@ -115,7 +140,7 @@
           <button id="insertBtn">문단 삽입</button>
 
           <div class="section-header top-gap">
-            <h2>5. 저장/검증</h2>
+            <h2>6. 저장/검증</h2>
             <p class="hint">수정 결과를 새 파일로 저장하고 다시 읽을 수 있는지 검증한다.</p>
           </div>
           <label>
