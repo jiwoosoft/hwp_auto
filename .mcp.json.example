@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "master-of-hwp": {
+      "command": "/Users/moon/Desktop/master-of-hwp/scripts/run_mcp_server.sh",
+      "args": [],
+      "env": {}
+    }
+  }
+}
