@@ -1,0 +1,146 @@
+from __future__ import annotations
+
+import json
+import os
+from http import HTTPStatus
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+from urllib.parse import urlparse
+
+from tools.extract_document_structure import extract_document_structure_tool
+from tools.extract_document_text import extract_document_text_tool
+from tools.insert_paragraph_after import insert_paragraph_after_tool
+from tools.open_document import open_document_tool
+from tools.replace_paragraph_text import replace_paragraph_text_tool
+from tools.rhwp_integration_status import rhwp_integration_status_tool
+from tools.rhwp_save_status import rhwp_save_status_tool
+from tools.save_as import save_as_tool
+from tools.validate_document import validate_document_tool
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+GUI_DIR = PROJECT_ROOT / "gui"
+HOST = os.getenv("MASTER_OF_HWP_GUI_HOST", "127.0.0.1")
+PORT = int(os.getenv("MASTER_OF_HWP_GUI_PORT", "8876"))
+
+
+class GUIHandler(BaseHTTPRequestHandler):
+    def do_GET(self) -> None:
+        parsed = urlparse(self.path)
+        if parsed.path == "/api/status":
+            self._send_json(
+                {
+                    "ok": True,
+                    "integration": rhwp_integration_status_tool(),
+                    "save": rhwp_save_status_tool(),
+                }
+            )
+            return
+
+        if parsed.path == "/" or parsed.path in {"/index.html", "/app.js", "/app.css"}:
+            self._serve_static(parsed.path)
+            return
+
+        self._send_json({"ok": False, "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+
+    def do_POST(self) -> None:
+        parsed = urlparse(self.path)
+        body = self._read_json_body()
+        if body is None:
+            self._send_json({"ok": False, "message": "Invalid JSON body"}, status=HTTPStatus.BAD_REQUEST)
+            return
+
+        routes = {
+            "/api/open": lambda data: open_document_tool(
+                path=str(data.get("path", "")),
+                readonly=bool(data.get("readonly", False)),
+            ),
+            "/api/text": lambda data: extract_document_text_tool(
+                path=str(data.get("path", "")),
+                document_id=str(data.get("document_id", "")),
+            ),
+            "/api/structure": lambda data: extract_document_structure_tool(
+                path=str(data.get("path", "")),
+                document_id=str(data.get("document_id", "")),
+            ),
+            "/api/replace": lambda data: replace_paragraph_text_tool(
+                document_id=str(data.get("document_id", "")),
+                paragraph_index=int(data.get("paragraph_index", 0)),
+                new_text=str(data.get("new_text", "")),
+            ),
+            "/api/insert": lambda data: insert_paragraph_after_tool(
+                document_id=str(data.get("document_id", "")),
+                after_paragraph_index=int(data.get("after_paragraph_index", 0)),
+                text=str(data.get("text", "")),
+            ),
+            "/api/save": lambda data: save_as_tool(
+                document_id=str(data.get("document_id", "")),
+                output_path=str(data.get("output_path", "")),
+            ),
+            "/api/validate": lambda data: validate_document_tool(
+                path=str(data.get("path", "")),
+            ),
+        }
+
+        handler = routes.get(parsed.path)
+        if handler is None:
+            self._send_json({"ok": False, "message": "Not found"}, status=HTTPStatus.NOT_FOUND)
+            return
+
+        try:
+            result = handler(body)
+        except Exception as exc:  # noqa: BLE001
+            self._send_json({"ok": False, "message": str(exc)}, status=HTTPStatus.INTERNAL_SERVER_ERROR)
+            return
+
+        self._send_json(result)
+
+    def log_message(self, format: str, *args: object) -> None:
+        return
+
+    def _read_json_body(self) -> dict[str, object] | None:
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            return None
+        raw = self.rfile.read(length)
+        try:
+            data = json.loads(raw.decode("utf-8") or "{}")
+        except json.JSONDecodeError:
+            return None
+        return data if isinstance(data, dict) else None
+
+    def _serve_static(self, path: str) -> None:
+        file_name = "index.html" if path in {"/", "/index.html"} else path.lstrip("/")
+        target = GUI_DIR / file_name
+        if not target.exists():
+            self._send_json({"ok": False, "message": "Static asset not found"}, status=HTTPStatus.NOT_FOUND)
+            return
+        content_type = "text/html; charset=utf-8"
+        if target.suffix == ".css":
+            content_type = "text/css; charset=utf-8"
+        elif target.suffix == ".js":
+            content_type = "application/javascript; charset=utf-8"
+        payload = target.read_bytes()
+        self.send_response(HTTPStatus.OK)
+        self.send_header("Content-Type", content_type)
+        self.send_header("Content-Length", str(len(payload)))
+        self.end_headers()
+        self.wfile.write(payload)
+
+    def _send_json(self, payload: dict[str, object], status: HTTPStatus = HTTPStatus.OK) -> None:
+        raw = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(raw)))
+        self.end_headers()
+        self.wfile.write(raw)
+
+
+def run() -> None:
+    server = ThreadingHTTPServer((HOST, PORT), GUIHandler)
+    print(f"master-of-hwp GUI running at http://{HOST}:{PORT}")
+    server.serve_forever()
+
+
+if __name__ == "__main__":
+    run()
