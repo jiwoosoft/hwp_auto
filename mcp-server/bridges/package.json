@@ -1,0 +1,17 @@
+{
+  "name": "master-of-hwp-bridges",
+  "version": "0.1.0",
+  "description": "Node.js bridge to @rhwp/core for HWP/HWPX text extraction",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "extract": "node rhwp_extract.mjs",
+    "smoke": "node smoke_test.mjs"
+  },
+  "dependencies": {
+    "@rhwp/core": "^0.7.3"
+  }
+}

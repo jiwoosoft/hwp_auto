@@ -1,0 +1,14 @@
+[project]
+name = "master-of-hwp-mcp"
+version = "0.1.0"
+description = "Initial MCP server for HWP/HWPX document reading experiments"
+requires-python = ">=3.11"
+dependencies = [
+  "fastmcp>=3.2.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+  "integration: tests that exercise real bridge-backed document flows",
+]
