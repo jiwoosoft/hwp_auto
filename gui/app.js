@@ -1,10 +1,24 @@
-const state = { documentId: '', browserPath: '/Users/moon' };
+const state = {
+  documentId: '',
+  browserPath: '/Users/moon',
+  lastText: '',
+  lastStructure: null,
+  history: [],
+};
 
 const els = {
   readinessText: document.getElementById('readinessText'),
   saveText: document.getElementById('saveText'),
   sessionText: document.getElementById('sessionText'),
+  documentMeta: document.getElementById('documentMeta'),
   outputPane: document.getElementById('outputPane'),
+  previewPane: document.getElementById('previewPane'),
+  structurePane: document.getElementById('structurePane'),
+  structureSummary: document.getElementById('structureSummary'),
+  historyPane: document.getElementById('historyPane'),
+  metaFormat: document.getElementById('metaFormat'),
+  metaChars: document.getElementById('metaChars'),
+  metaTables: document.getElementById('metaTables'),
   pathInput: document.getElementById('pathInput'),
   browsePath: document.getElementById('browsePath'),
   browserPane: document.getElementById('browserPane'),
@@ -14,6 +28,7 @@ const els = {
   insertText: document.getElementById('insertText'),
   savePath: document.getElementById('savePath'),
   refreshStatus: document.getElementById('refreshStatus'),
+  reloadDocument: document.getElementById('reloadDocument'),
   browseBtn: document.getElementById('browseBtn'),
   goParentBtn: document.getElementById('goParentBtn'),
   usePathBtn: document.getElementById('usePathBtn'),
@@ -31,6 +46,26 @@ function renderOutput(label, payload) {
   els.outputPane.textContent = `${label}\n\n${JSON.stringify(payload, null, 2)}`;
 }
 
+function addHistory(title, detail) {
+  state.history.unshift({ title, detail, time: new Date().toLocaleTimeString('ko-KR') });
+  state.history = state.history.slice(0, 20);
+  renderHistory();
+}
+
+function renderHistory() {
+  if (!state.history.length) {
+    els.historyPane.textContent = '아직 작업 이력이 없다.';
+    return;
+  }
+  els.historyPane.innerHTML = '';
+  for (const item of state.history) {
+    const row = document.createElement('div');
+    row.className = 'history-entry';
+    row.innerHTML = `<strong>${item.title}</strong><small>${item.time}</small><span>${item.detail}</span>`;
+    els.historyPane.appendChild(row);
+  }
+}
+
 async function postJson(url, body) {
   const res = await fetch(url, {
     method: 'POST',
@@ -42,6 +77,58 @@ async function postJson(url, body) {
 
 function updateSessionText() {
   els.sessionText.textContent = state.documentId ? `열린 문서: ${state.documentId}` : '열린 문서 없음';
+}
+
+function updateMeta({ format = '-', chars = '-', tables = '-', path = '' } = {}) {
+  els.metaFormat.textContent = `형식: ${format}`;
+  els.metaChars.textContent = `글자 수: ${chars}`;
+  els.metaTables.textContent = `테이블: ${tables}`;
+  els.documentMeta.textContent = path ? `현재 대상: ${path}` : '문서를 열면 형식, 글자 수, 테이블 수를 보여준다.';
+}
+
+function renderPreview(text) {
+  state.lastText = text || '';
+  els.previewPane.textContent = state.lastText || '추출된 문서 텍스트가 여기에 표시된다.';
+}
+
+function renderStructure(structure) {
+  state.lastStructure = structure;
+  if (!structure) {
+    els.structureSummary.textContent = '아직 구조를 불러오지 않았다.';
+    els.structurePane.textContent = '문단 인덱스와 테이블 정보를 여기에 표시한다.';
+    return;
+  }
+  els.structureSummary.textContent = `문단 ${structure.paragraph_count}개 · 섹션 ${structure.section_count}개 · 테이블 ${structure.table_count}개`;
+  els.structurePane.innerHTML = '';
+
+  const sections = Array.isArray(structure.sections) ? structure.sections : [];
+  const paragraphs = Array.isArray(structure.paragraphs) ? structure.paragraphs : [];
+  const tables = Array.isArray(structure.tables) ? structure.tables : [];
+
+  for (const section of sections) {
+    const row = document.createElement('div');
+    row.className = 'structure-entry';
+    row.innerHTML = `<strong>섹션 ${section.section_index}: ${section.title}</strong><small>문단 시작 인덱스 ${section.paragraph_index}</small>`;
+    els.structurePane.appendChild(row);
+  }
+  for (const paragraph of paragraphs.slice(0, 20)) {
+    const row = document.createElement('div');
+    row.className = 'structure-entry';
+    row.innerHTML = `<strong>문단 ${paragraph.paragraph_index}</strong><small>${paragraph.text_preview || '(빈 문단)'}</small>`;
+    row.addEventListener('click', () => {
+      els.paragraphIndex.value = paragraph.paragraph_index;
+      addHistory('문단 선택', `문단 ${paragraph.paragraph_index}을 편집 대상으로 선택`);
+    });
+    els.structurePane.appendChild(row);
+  }
+  if (tables.length) {
+    for (const table of tables.slice(0, 12)) {
+      const row = document.createElement('div');
+      row.className = 'structure-entry';
+      row.innerHTML = `<strong>테이블 · ${table.rowCount || '?'}행 × ${table.colCount || '?'}열</strong><small>page ${table.pageIndex ?? '-'} / para ${table.paragraph ?? '-'}</small>`;
+      els.structurePane.appendChild(row);
+    }
+  }
 }
 
 function renderBrowser(entries, currentPath, parentPath) {
@@ -66,10 +153,11 @@ function renderBrowser(entries, currentPath, parentPath) {
         return;
       }
       els.pathInput.value = entry.path;
-      if (!els.savePath.value || els.savePath.value.includes('gui_saved')) {
+      if (!els.savePath.value || els.savePath.value.includes('gui_saved') || els.savePath.value.includes('.gui-edited')) {
         const ext = entry.path.endsWith('.hwp') ? '.hwp' : entry.path.endsWith('.hwpx') ? '.hwpx' : '.txt';
         els.savePath.value = entry.path.replace(ext, `.gui-edited${ext}`);
       }
+      addHistory('파일 선택', entry.path);
       renderOutput('FILE_SELECTED', entry);
     });
     els.browserPane.appendChild(row);
@@ -106,6 +194,8 @@ async function openDocument() {
   });
   state.documentId = payload.data?.document_id || '';
   updateSessionText();
+  updateMeta({ path: payload.data?.path || els.pathInput.value });
+  addHistory('문서 열기', payload.data?.path || els.pathInput.value);
   renderOutput('OPEN_DOCUMENT', payload);
 }
 
@@ -114,6 +204,16 @@ async function extractText() {
     document_id: state.documentId,
     path: state.documentId ? '' : els.pathInput.value,
   });
+  if (payload.ok) {
+    renderPreview(payload.data.text || '');
+    updateMeta({
+      format: payload.data.source_format || '-',
+      chars: payload.data.char_count || '-',
+      tables: state.lastStructure?.table_count ?? '-',
+      path: payload.data.path || els.pathInput.value,
+    });
+    addHistory('텍스트 추출', `${payload.data.source_format} / ${payload.data.char_count} chars`);
+  }
   renderOutput('EXTRACT_TEXT', payload);
 }
 
@@ -122,7 +222,23 @@ async function extractStructure() {
     document_id: state.documentId,
     path: state.documentId ? '' : els.pathInput.value,
   });
+  if (payload.ok) {
+    renderStructure(payload.data);
+    updateMeta({
+      format: payload.data.source_format || '-',
+      chars: state.lastText ? state.lastText.length : '-',
+      tables: payload.data.table_count || 0,
+      path: payload.data.path || els.pathInput.value,
+    });
+    addHistory('구조 추출', `문단 ${payload.data.paragraph_count} / 테이블 ${payload.data.table_count}`);
+  }
   renderOutput('EXTRACT_STRUCTURE', payload);
+}
+
+async function reloadDocumentState() {
+  if (!state.documentId && !els.pathInput.value) return;
+  await extractText();
+  await extractStructure();
 }
 
 async function replaceParagraph() {
@@ -131,6 +247,10 @@ async function replaceParagraph() {
     paragraph_index: Number(els.paragraphIndex.value),
     new_text: els.replaceText.value,
   });
+  if (payload.ok) {
+    addHistory('문단 치환', `문단 ${els.paragraphIndex.value} 수정`);
+    await reloadDocumentState();
+  }
   renderOutput('REPLACE_PARAGRAPH', payload);
 }
 
@@ -140,6 +260,10 @@ async function insertParagraph() {
     after_paragraph_index: Number(els.paragraphIndex.value),
     text: els.insertText.value,
   });
+  if (payload.ok) {
+    addHistory('문단 삽입', `문단 ${els.paragraphIndex.value} 뒤에 새 문단 추가`);
+    await reloadDocumentState();
+  }
   renderOutput('INSERT_PARAGRAPH', payload);
 }
 
@@ -148,6 +272,9 @@ async function saveDocument() {
     document_id: state.documentId,
     output_path: els.savePath.value,
   });
+  if (payload.ok) {
+    addHistory('저장', payload.data.output_path || els.savePath.value);
+  }
   renderOutput('SAVE_AS', payload);
 }
 
@@ -155,14 +282,19 @@ async function validateDocument() {
   const payload = await postJson('/api/validate', {
     path: els.savePath.value,
   });
+  if (payload.ok) {
+    addHistory('검증', `${els.savePath.value} 검증 완료`);
+  }
   renderOutput('VALIDATE_DOCUMENT', payload);
 }
 
 els.refreshStatus.addEventListener('click', refreshStatus);
+els.reloadDocument.addEventListener('click', reloadDocumentState);
 els.browseBtn.addEventListener('click', () => browse(els.browsePath.value));
 els.goParentBtn.addEventListener('click', () => browse(state.browserPath.split('/').slice(0, -1).join('/') || '/'));
 els.usePathBtn.addEventListener('click', () => {
   els.pathInput.value = els.browsePath.value;
+  addHistory('경로 선택', els.pathInput.value);
   renderOutput('PATH_SELECTED', { path: els.pathInput.value });
 });
 els.openBtn.addEventListener('click', openDocument);
@@ -177,5 +309,8 @@ els.clearBtn.addEventListener('click', () => {
 });
 
 updateSessionText();
+updateMeta();
+renderHistory();
+renderStructure(null);
 refreshStatus();
 browse('/Users/moon');

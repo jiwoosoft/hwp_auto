@@ -11,10 +11,13 @@
       <header class="hero">
         <div>
           <p class="eyebrow">master-of-hwp</p>
-          <h1>HWP/HWPX AI 작업 패널</h1>
-          <p class="subtitle">문서를 열어두고 읽기, 구조 확인, 문단 편집, 저장까지 빠르게 검증하는 로컬 워크벤치</p>
+          <h1>HWP/HWPX AI 작업 워크벤치</h1>
+          <p class="subtitle">문서를 열어두고 읽기, 구조 확인, 문단 편집, 저장까지 연결하는 로컬 문서 작업 패널</p>
         </div>
-        <button id="refreshStatus" class="secondary">상태 새로고침</button>
+        <div class="hero-actions">
+          <button id="refreshStatus" class="secondary">상태 새로고침</button>
+          <button id="reloadDocument" class="ghost">문서 새로고침</button>
+        </div>
       </header>
 
       <section class="status-grid">
@@ -30,13 +33,17 @@
           <h2>현재 세션</h2>
           <p id="sessionText">열린 문서 없음</p>
         </article>
+        <article class="card status-card accent-card">
+          <h2>현재 문서</h2>
+          <p id="documentMeta">문서를 열면 형식, 글자 수, 테이블 수를 보여준다.</p>
+        </article>
       </section>
 
-      <main class="layout">
-        <section class="card controls">
+      <main class="workbench">
+        <aside class="card sidebar left-rail">
           <div class="section-header">
             <h2>1. 로컬 문서 찾기</h2>
-            <p class="hint">내 컴퓨터의 HWP/HWPX/TXT/MD 문서를 찾아서 바로 열 수 있다.</p>
+            <p class="hint">내 컴퓨터의 HWP/HWPX/TXT/MD 문서를 탐색해서 선택한다.</p>
           </div>
           <label>
             탐색 경로
@@ -51,7 +58,7 @@
 
           <div class="section-header top-gap">
             <h2>2. 문서 열기</h2>
-            <p class="hint">아래 경로는 열기 대상이다. 파일 브라우저에서 클릭하면 자동으로 채워진다.</p>
+            <p class="hint">파일 브라우저에서 선택하면 경로가 자동으로 채워진다.</p>
           </div>
           <label>
             파일 경로
@@ -64,8 +71,8 @@
           <button id="openBtn">문서 열기</button>
 
           <div class="section-header top-gap">
-            <h2>3. 빠른 읽기</h2>
-            <p class="hint">텍스트와 구조를 추출해서 현재 문서가 어떤 상태인지 파악한다.</p>
+            <h2>3. 빠른 작업</h2>
+            <p class="hint">문서를 열고 나면 아래 액션으로 현재 상태를 파악한다.</p>
           </div>
           <div class="actions">
             <button id="textBtn" class="secondary">텍스트 추출</button>
@@ -94,7 +101,7 @@
 
           <div class="section-header top-gap">
             <h2>5. 저장/검증</h2>
-            <p class="hint">수정 결과를 새 파일로 저장하고 다시 읽을 수 있는지 검증한다.</p>
+            <p class="hint">결과를 새 파일로 저장한 뒤 다시 읽을 수 있는지 검증한다.</p>
           </div>
           <label>
             저장 경로
@@ -104,18 +111,58 @@
             <button id="saveBtn">저장</button>
             <button id="validateBtn" class="secondary">저장본 검증</button>
           </div>
+        </aside>
+
+        <section class="center-column">
+          <section class="card preview-panel">
+            <div class="section-header compact">
+              <div>
+                <h2>문서 미리보기</h2>
+                <p class="hint inline">현재는 실제 렌더링 대신 추출된 텍스트를 보기 좋게 보여준다.</p>
+              </div>
+              <div class="preview-stats">
+                <span id="metaFormat" class="pill">형식: -</span>
+                <span id="metaChars" class="pill">글자 수: -</span>
+                <span id="metaTables" class="pill">테이블: -</span>
+              </div>
+            </div>
+            <div id="previewPane" class="preview-pane">문서를 열고 텍스트 추출을 누르면 여기에 내용이 보인다.</div>
+          </section>
+
+          <section class="card result-panel">
+            <div class="output-header">
+              <div>
+                <h2>결과 / 디버그 로그</h2>
+                <p class="hint inline">백엔드 원본 응답과 최근 작업 상태를 함께 확인한다.</p>
+              </div>
+              <button id="clearBtn" class="ghost">지우기</button>
+            </div>
+            <pre id="outputPane">아직 실행 결과가 없습니다.</pre>
+          </section>
         </section>
 
-        <section class="card output">
-          <div class="output-header">
-            <div>
-              <h2>결과 / 문서 상태</h2>
-              <p class="hint inline">현재는 시각적 렌더링보다 실제 백엔드 결과를 정확히 확인하는 데 초점을 둔다.</p>
+        <aside class="card sidebar right-rail">
+          <section class="structure-panel">
+            <div class="section-header compact">
+              <div>
+                <h2>문서 구조</h2>
+                <p class="hint inline">섹션, 문단, 테이블 수를 빠르게 확인한다.</p>
+              </div>
             </div>
-            <button id="clearBtn" class="ghost">지우기</button>
-          </div>
-          <pre id="outputPane">아직 실행 결과가 없습니다.</pre>
-        </section>
+            <div id="structureSummary" class="summary-box">아직 구조를 불러오지 않았다.</div>
+            <div id="structurePane" class="structure-pane">문단 인덱스와 테이블 정보를 여기에 표시한다.</div>
+          </section>
+
+          <section class="history-panel top-gap">
+            <div class="section-header compact">
+              <div>
+                <h2>작업 이력</h2>
+                <p class="hint inline">최근에 어떤 작업을 했는지 시간순으로 확인한다.</p>
+              </div>
+            </div>
+            <div id="historyPane" class="history-pane">아직 작업 이력이 없다.</div>
+          </section>
+        </aside>
       </main>
     </div>
 
