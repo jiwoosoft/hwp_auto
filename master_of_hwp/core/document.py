@@ -221,3 +221,56 @@ class HwpDocument:
         if self.source_format is SourceFormat.HWPX:
             return _hwpx_tables(self.raw_bytes)
         raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
+
+    def replace_paragraph(
+        self,
+        section_index: int,
+        paragraph_index: int,
+        new_text: str,
+    ) -> Self:
+        """Return a new `HwpDocument` with the specified paragraph replaced.
+
+        The original instance is not modified (immutable semantics).
+        Only the paragraph text is changed; all other document content
+        (other paragraphs, tables, styles, non-BodyText storages) is
+        preserved as faithfully as the underlying adapter allows.
+
+        Args:
+            section_index: Zero-based section index; must be in range
+                `[0, sections_count)`.
+            paragraph_index: Zero-based paragraph index within the
+                target section.
+            new_text: Replacement text. Must not contain control
+                characters; for HWPX, newlines are preserved as-is.
+
+        Returns:
+            A new `HwpDocument` with the updated `raw_bytes`.
+
+        Raises:
+            IndexError: If either index is out of range.
+            master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
+                For HWP 5.0 if a non-no-op replacement is attempted
+                (different-length edits require the CFBF resize writer,
+                pending in a future release).
+            master_of_hwp.adapters.hwpx_reader.HwpxFormatError:
+                If the HWPX container cannot be rewritten.
+        """
+        from master_of_hwp.adapters.hwp5_reader import (
+            replace_paragraph as _hwp5_replace,
+        )
+        from master_of_hwp.adapters.hwpx_reader import (
+            replace_paragraph as _hwpx_replace,
+        )
+
+        if self.source_format is SourceFormat.HWP:
+            new_bytes = _hwp5_replace(self.raw_bytes, section_index, paragraph_index, new_text)
+        elif self.source_format is SourceFormat.HWPX:
+            new_bytes = _hwpx_replace(self.raw_bytes, section_index, paragraph_index, new_text)
+        else:
+            raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
+
+        return type(self)(
+            path=self.path,
+            source_format=self.source_format,
+            raw_bytes=new_bytes,
+        )
