@@ -185,7 +185,16 @@ function updateSelInfo() {
   if (state.selectedIndex == null) {
     els.selInfo.textContent = '선택된 문단 없음';
   } else {
-    els.selInfo.textContent = `문단 ${state.selectedIndex + 1} 선택됨`;
+    els.selInfo.textContent = `문단 ${state.selectedIndex + 1} 선택됨`; 
+  }
+}
+
+function ensureDefaultParagraphSelection() {
+  if (state.selectedIndex != null) return;
+  const paragraphCount = Number(state.structure?.paragraph_count || 0);
+  if (paragraphCount > 0) {
+    state.selectedIndex = 0;
+    updateSelInfo();
   }
 }
 
@@ -203,7 +212,10 @@ async function openDocumentByPath(path) {
   els.fileName.textContent = state.path.split('/').pop();
   els.saveBtn.disabled = false;
   els.saveBtn.dataset.outputPath = suggestOutputPath(state.path);
-  els.editorHint?.classList.add('hidden');
+  if (els.editorHint) {
+    els.editorHint.classList.add('hidden');
+    els.editorHint.style.display = 'none';
+  }
   addBubble('system', `✓ ${els.fileName.textContent} 열림`);
 
   if (state.editorReady) {
@@ -226,6 +238,7 @@ async function reloadDocument() {
   const res = await api('/api/structure', { document_id: state.documentId });
   if (res.ok) {
     updateMeta(res.data);
+    ensureDefaultParagraphSelection();
   } else {
     addBubble('error', `구조 로드 실패: ${res.message || ''}`);
   }
@@ -271,6 +284,10 @@ function parseIntent(text) {
     paragraphIndex = one - 1;
   } else if (state.selectedIndex != null) {
     paragraphIndex = state.selectedIndex;
+  } else if (Number(state.structure?.paragraph_count || 0) > 0) {
+    paragraphIndex = 0;
+    state.selectedIndex = 0;
+    updateSelInfo();
   }
 
   // Insert after
@@ -413,4 +430,5 @@ els.chatText.addEventListener('keydown', (e) => {
 });
 
 showEmptyChat();
+updateSelInfo();
 getStatus();
