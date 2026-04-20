@@ -135,22 +135,25 @@ class HwpDocument:
 
         Returns:
             A list of strings; `len(section_texts) == sections_count`.
-            HWP 5.0 paragraph terminators (`\\r`) are preserved; consumers
-            can normalize to `\\n` or `""` if needed.
+            HWP 5.0 paragraph terminators (`\\r`) are preserved as-is;
+            HWPX paragraph boundaries are emitted as `\\n`. Consumers
+            that want a single normalized separator should post-process.
 
         Raises:
-            NotImplementedError: For HWPX until the HWPX text extractor
-                (spike #004) lands.
             master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
                 If the HWP 5.0 binary cannot be parsed.
+            master_of_hwp.adapters.hwpx_reader.HwpxFormatError:
+                If the HWPX container is malformed.
         """
-        from master_of_hwp.adapters.hwp5_reader import extract_section_texts
+        from master_of_hwp.adapters.hwp5_reader import (
+            extract_section_texts as _hwp5_extract,
+        )
+        from master_of_hwp.adapters.hwpx_reader import (
+            extract_section_texts as _hwpx_extract,
+        )
 
         if self.source_format is SourceFormat.HWP:
-            return extract_section_texts(self.raw_bytes)
+            return _hwp5_extract(self.raw_bytes)
         if self.source_format is SourceFormat.HWPX:
-            raise NotImplementedError(
-                "HWPX text extraction pending spike #004. "
-                "Use sections_count for structural queries in the meantime."
-            )
+            return _hwpx_extract(self.raw_bytes)
         raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
