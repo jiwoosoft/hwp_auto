@@ -38,3 +38,4 @@ outputs/edited_from_session.*
 
 # OS/editor
 .DS_Store
+.omx/

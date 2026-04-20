@@ -1,5 +1,5 @@
 /* master-of-hwp simplified GUI
- * Chat-driven workflow. Left: real rhwp editor. Right: Claude panel.
+ * Chat-driven workflow. Left: real rhwp editor. Right: AI provider panel.
  */
 
 const state = {
@@ -20,6 +20,7 @@ const els = {
   statusDot: $('statusDot'),
   openBtn: $('openBtn'),
   saveBtn: $('saveBtn'),
+  providerSelect: $('providerSelect'),
   editorFrame: $('editorFrame'),
   docMeta: $('docMeta'),
   selInfo: $('selInfo'),
@@ -45,6 +46,10 @@ async function api(path, body) {
   } catch (err) {
     return { ok: false, message: String(err) };
   }
+}
+
+function currentProvider() {
+  return els.providerSelect?.value || 'claude';
 }
 
 async function getStatus() {
@@ -85,11 +90,12 @@ function addBubble(role, text) {
 }
 
 function addPreviewCard(preview) {
+  const providerLabel = preview.provider || currentProvider();
   const label = preview.selection ? '선택 영역' : `문단 ${preview.paragraph_index}`;
   const card = document.createElement('div');
   card.className = 'preview-card';
   card.innerHTML = `
-    <div class="title">${escapeHtml(preview.title || 'AI 제안')} · ${label}</div>
+    <div class="title">${escapeHtml(preview.title || 'AI 제안')} · ${label} · ${escapeHtml(providerLabel)}</div>
     <div class="content">${escapeHtml(preview.content || '')}</div>
     <div class="row">
       <button class="btn primary apply-btn">적용</button>
@@ -328,7 +334,7 @@ function escapeHtml(s) {
 }
 
 async function handleChat(text) {
-  addBubble('user', text);
+  addBubble('user', `${currentProvider().toUpperCase()} · ${text}`);
   const intent = parseIntent(text);
   if (!intent) return;
 
@@ -345,6 +351,7 @@ async function handleChat(text) {
     return;
   }
 
+  const provider = currentProvider();
   const selectionMode = intent.type.startsWith('ai_selection_');
   const taskMap = {
     ai_rewrite: 'rewrite',
@@ -355,16 +362,17 @@ async function handleChat(text) {
     ai_selection_insert: 'insert',
   };
   const taskType = taskMap[intent.type];
-  const thinking = addBubble('ai', '생각 중...');
+  const thinking = addBubble('ai', `${provider} 생각 중...`);
   const endpoint = selectionMode ? '/api/ai/preview-selection' : '/api/ai/preview';
   const payload = selectionMode
     ? {
-        document_id: state.documentId,
+        provider,
         selection: state.selection,
         task_type: taskType,
         instruction: intent.instruction,
       }
     : {
+        provider,
         document_id: state.documentId,
         paragraph_index: intent.paragraphIndex,
         task_type: taskType,

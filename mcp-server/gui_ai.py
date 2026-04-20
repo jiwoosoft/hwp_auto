@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from cli_wrappers.claude_wrapper import ClaudeWrapperError, run_claude_json
+from cli_wrappers import ProviderRouterError, run_provider_json
 from orchestration.prompt_builder import build_paragraph_ai_prompt
 from orchestration.response_mapper import map_ai_preview
 from tools.extract_document_structure import extract_document_structure_tool
@@ -9,7 +9,7 @@ from tools.replace_paragraph_text import replace_paragraph_text_tool
 from tools.replace_selection_text import replace_selection_text_tool
 
 
-def ai_preview_tool(document_id: str, paragraph_index: int, task_type: str, instruction: str) -> dict[str, object]:
+def ai_preview_tool(provider: str, document_id: str, paragraph_index: int, task_type: str, instruction: str) -> dict[str, object]:
     structure = extract_document_structure_tool(document_id=document_id)
     if not structure.get("ok"):
         return structure
@@ -45,22 +45,27 @@ def ai_preview_tool(document_id: str, paragraph_index: int, task_type: str, inst
     )
 
     try:
-        result = run_claude_json(prompt)
-    except ClaudeWrapperError as exc:
+        result = run_provider_json(provider, prompt, workdir='/Users/moon/Desktop/master-of-hwp')
+    except ProviderRouterError as exc:
         return {
             "ok": False,
             "message": str(exc),
-            "error_code": "CLAUDE_WRAPPER_FAILED",
+            "error_code": f"{provider.upper()}_WRAPPER_FAILED",
         }
 
-    return map_ai_preview(
+    mapped = map_ai_preview(
         task_type=task_type,
         paragraph_index=paragraph_index,
         response=result["structured"],
     )
+    if mapped.get('ok'):
+        data = mapped.get('data')
+        if isinstance(data, dict):
+            data['provider'] = result['provider']
+    return mapped
 
 
-def ai_selection_preview_tool(selection: dict[str, object], task_type: str, instruction: str) -> dict[str, object]:
+def ai_selection_preview_tool(provider: str, selection: dict[str, object], task_type: str, instruction: str) -> dict[str, object]:
     selected_text = str(selection.get("text", "")).strip()
     if not selected_text:
         return {
@@ -76,12 +81,12 @@ def ai_selection_preview_tool(selection: dict[str, object], task_type: str, inst
     )
 
     try:
-        result = run_claude_json(prompt)
-    except ClaudeWrapperError as exc:
+        result = run_provider_json(provider, prompt, workdir='/Users/moon/Desktop/master-of-hwp')
+    except ProviderRouterError as exc:
         return {
             "ok": False,
             "message": str(exc),
-            "error_code": "CLAUDE_WRAPPER_FAILED",
+            "error_code": f"{provider.upper()}_WRAPPER_FAILED",
         }
 
     mapped = map_ai_preview(
@@ -93,6 +98,7 @@ def ai_selection_preview_tool(selection: dict[str, object], task_type: str, inst
         data = mapped.get("data")
         if isinstance(data, dict):
             data["selection"] = selection
+            data['provider'] = result['provider']
     return mapped
 
 

@@ -38,6 +38,7 @@ class GUIHandler(BaseHTTPRequestHandler):
                     "save": rhwp_save_status_tool(),
                     "allowed_workspace": str(SETTINGS.allowed_workspace),
                     "editor_url": "http://127.0.0.1:7700/",
+                    "providers": ["claude", "codex", "opencode"],
                 }
             )
             return
@@ -81,12 +82,14 @@ class GUIHandler(BaseHTTPRequestHandler):
                 text=str(data.get("text", "")),
             ),
             "/api/ai/preview": lambda data: ai_preview_tool(
+                provider=str(data.get("provider", "claude")),
                 document_id=str(data.get("document_id", "")),
                 paragraph_index=int(data.get("paragraph_index", 0)),
                 task_type=str(data.get("task_type", "rewrite")),
                 instruction=str(data.get("instruction", "")),
             ),
             "/api/ai/preview-selection": lambda data: ai_selection_preview_tool(
+                provider=str(data.get("provider", "claude")),
                 selection=data.get("selection") if isinstance(data.get("selection"), dict) else {},
                 task_type=str(data.get("task_type", "rewrite")),
                 instruction=str(data.get("instruction", "")),

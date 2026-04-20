@@ -33,15 +33,23 @@
 
       <section class="chat-panel">
         <div class="panel-header">
-          <span>Claude 작업 패널</span>
+          <span>AI 작업 패널</span>
           <span id="selInfo" class="meta">선택된 문단 없음</span>
+        </div>
+        <div class="provider-row">
+          <label for="providerSelect">모델</label>
+          <select id="providerSelect">
+            <option value="claude">Claude Code</option>
+            <option value="codex">Codex</option>
+            <option value="opencode">OpenCode</option>
+          </select>
         </div>
         <div id="chatLog" class="chat-log"></div>
         <form id="chatForm" class="chat-input">
           <textarea
             id="chatText"
             rows="2"
-            placeholder="예: '3번째 문단을 공식 문서체로 바꿔줘', '문단 5 뒤에 결론 추가', '2번 문단 요약', '저장해줘'"
+            placeholder="예: '드래그한 부분을 공식 문서체로 바꿔줘', '선택한 부분을 요약해줘', '문단 5 뒤에 결론 추가', '저장해줘'"
           ></textarea>
           <button type="submit" class="btn primary">보내기 ↵</button>
         </form>
