@@ -128,3 +128,29 @@ class HwpDocument:
         if self.source_format is SourceFormat.HWPX:
             return _hwpx_count(self.raw_bytes)
         raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
+
+    @property
+    def section_texts(self) -> list[str]:
+        """Plain text of each section, one string per section.
+
+        Returns:
+            A list of strings; `len(section_texts) == sections_count`.
+            HWP 5.0 paragraph terminators (`\\r`) are preserved; consumers
+            can normalize to `\\n` or `""` if needed.
+
+        Raises:
+            NotImplementedError: For HWPX until the HWPX text extractor
+                (spike #004) lands.
+            master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
+                If the HWP 5.0 binary cannot be parsed.
+        """
+        from master_of_hwp.adapters.hwp5_reader import extract_section_texts
+
+        if self.source_format is SourceFormat.HWP:
+            return extract_section_texts(self.raw_bytes)
+        if self.source_format is SourceFormat.HWPX:
+            raise NotImplementedError(
+                "HWPX text extraction pending spike #004. "
+                "Use sections_count for structural queries in the meantime."
+            )
+        raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
