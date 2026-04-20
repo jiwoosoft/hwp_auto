@@ -4,6 +4,10 @@ __pycache__/
 *.pyo
 *.pyd
 .pytest_cache/
+.coverage
+.ruff_cache/
+.mypy_cache/
+htmlcov/
 
 # Virtual environments
 .venv/
@@ -50,3 +54,8 @@ outputs/edited_from_session.*
 /docs/CLI_*.md
 /docs/GUI_실행_가이드.md
 /docs/현재_*.md
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
