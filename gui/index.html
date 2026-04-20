@@ -3,180 +3,67 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>master-of-hwp GUI</title>
+    <title>master-of-hwp</title>
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
-    <div class="shell">
-      <header class="hero">
-        <div>
-          <p class="eyebrow">master-of-hwp</p>
-          <h1>rhwp 에디터 + Claude 작업 패널</h1>
-          <p class="subtitle">파일을 고르면 실제 rhwp 한글 에디터가 메인에 열리고, 오른쪽에서 Claude Code 기반 자연어 편집 작업을 수행한다.</p>
-        </div>
-        <div class="hero-actions">
-          <button id="refreshStatus" class="secondary">상태 새로고침</button>
-          <button id="reloadDocument" class="ghost">문서 새로고침</button>
-        </div>
-      </header>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo">📝</span>
+        <span class="title">master-of-hwp</span>
+        <span id="fileName" class="filename">파일 없음</span>
+      </div>
+      <div class="actions">
+        <button id="openBtn" class="btn primary">📂 열기</button>
+        <button id="saveBtn" class="btn" disabled>💾 저장</button>
+        <span id="statusDot" class="dot off" title="서버 상태"></span>
+      </div>
+    </header>
 
-      <section class="status-grid">
-        <article class="card status-card">
-          <h2>읽기 엔진</h2>
-          <p id="readinessText">확인 중...</p>
-        </article>
-        <article class="card status-card">
-          <h2>저장 엔진</h2>
-          <p id="saveText">확인 중...</p>
-        </article>
-        <article class="card status-card">
-          <h2>현재 세션</h2>
-          <p id="sessionText">열린 문서 없음</p>
-        </article>
-        <article class="card status-card accent-card">
-          <h2>현재 문서</h2>
-          <p id="documentMeta">문서를 열면 형식, 글자 수, 테이블 수를 보여준다.</p>
-        </article>
-      </section>
-
-      <main class="editor-layout">
-        <section class="card editor-host">
-          <div class="section-header compact">
-            <div>
-              <h2>rhwp 에디터</h2>
-              <p class="hint inline">파일을 열면 이 영역에 실제 rhwp-studio 에디터가 로드된다.</p>
-            </div>
-            <div class="preview-stats">
-              <span id="metaFormat" class="pill">형식: -</span>
-              <span id="metaChars" class="pill">글자 수: -</span>
-              <span id="metaTables" class="pill">테이블: -</span>
-            </div>
-          </div>
+    <main class="workspace">
+      <section class="doc-panel">
+        <div class="panel-header">
+          <span>rhwp 에디터</span>
+          <span id="docMeta" class="meta">—</span>
+        </div>
+        <div class="editor-wrap">
           <iframe id="editorFrame" class="editor-frame" src="http://127.0.0.1:7700/"></iframe>
-        </section>
-
-        <aside class="card action-panel">
-          <div class="section-header">
-            <h2>1. 로컬 파일 찾기</h2>
-            <p class="hint">내 컴퓨터의 HWP/HWPX/TXT/MD 문서를 탐색해서 바로 에디터에 로드한다.</p>
+          <div id="editorHint" class="editor-hint">
+            📂 <b>열기</b>로 HWP/HWPX/TXT/MD 파일을 불러오면 실제 rhwp 에디터에 문서가 로드됩니다.
           </div>
-          <label>
-            탐색 경로
-            <input id="browsePath" type="text" value="/Users/moon" />
-          </label>
-          <div class="actions three">
-            <button id="browseBtn">폴더 보기</button>
-            <button id="goParentBtn" class="secondary">상위 폴더</button>
-            <button id="usePathBtn" class="secondary">현재 경로 사용</button>
-          </div>
-          <div id="browserPane" class="browser-pane">파일 목록을 불러오는 중...</div>
-
-          <div class="section-header top-gap">
-            <h2>2. 문서 열기</h2>
-            <p class="hint">선택한 파일을 에디터와 세션에 동시에 로드한다.</p>
-          </div>
-          <label>
-            파일 경로
-            <input id="pathInput" type="text" value="/Users/moon/Desktop/master-of-hwp/samples/public-official/table-vpos-01.hwpx" />
-          </label>
-          <label class="checkbox-row">
-            <input id="readonlyToggle" type="checkbox" />
-            읽기 전용으로 열기
-          </label>
-          <button id="openBtn">문서 열기</button>
-
-          <div class="section-header top-gap">
-            <h2>3. Claude 작업 패널</h2>
-            <p class="hint">현재 문단을 요약하거나 다시 쓰게 하고, 결과를 미리 본 뒤 적용한다.</p>
-          </div>
-          <label>
-            작업 유형
-            <select id="aiTaskType">
-              <option value="rewrite">문단 다시쓰기</option>
-              <option value="summarize">문단 요약</option>
-              <option value="insert">뒤에 새 문단 생성</option>
-            </select>
-          </label>
-          <label>
-            대상 문단 인덱스
-            <input id="paragraphIndex" type="number" value="5" />
-          </label>
-          <label>
-            자연어 요청
-            <textarea id="aiInstruction">이 문단을 더 명확하고 자연스럽게 다듬어줘.</textarea>
-          </label>
-          <div class="actions">
-            <button id="aiPreviewBtn">Claude 미리보기</button>
-            <button id="aiApplyBtn" class="secondary">미리보기 적용</button>
-          </div>
-          <label>
-            AI 결과 미리보기
-            <textarea id="aiPreviewPane">아직 AI 미리보기가 없다.</textarea>
-          </label>
-
-          <div class="section-header top-gap">
-            <h2>4. 빠른 읽기</h2>
-            <p class="hint">현재 문서를 요약/구조화해서 오른쪽 패널에 보여준다.</p>
-          </div>
-          <div class="actions">
-            <button id="textBtn" class="secondary">텍스트 추출</button>
-            <button id="structureBtn" class="secondary">구조 추출</button>
-          </div>
-
-          <div class="section-header top-gap">
-            <h2>5. 수동 문단 편집</h2>
-            <p class="hint">지금은 문단 단위 치환/삽입이 가장 안정적이다.</p>
-          </div>
-          <label>
-            치환 텍스트
-            <textarea id="replaceText">□ master-of-hwp GUI에서 수정한 문단입니다.</textarea>
-          </label>
-          <button id="replaceBtn">문단 치환</button>
-
-          <label>
-            삽입 텍스트
-            <textarea id="insertText">○ GUI에서 추가한 문단입니다.</textarea>
-          </label>
-          <button id="insertBtn">문단 삽입</button>
-
-          <div class="section-header top-gap">
-            <h2>6. 저장/검증</h2>
-            <p class="hint">수정 결과를 새 파일로 저장하고 다시 읽을 수 있는지 검증한다.</p>
-          </div>
-          <label>
-            저장 경로
-            <input id="savePath" type="text" value="/Users/moon/Desktop/master-of-hwp/outputs/gui_saved.hwpx" />
-          </label>
-          <div class="actions">
-            <button id="saveBtn">저장</button>
-            <button id="validateBtn" class="secondary">저장본 검증</button>
-          </div>
-
-          <div class="section-header top-gap">
-            <h2>문서 구조</h2>
-            <p class="hint">섹션, 문단, 테이블 수를 빠르게 확인한다.</p>
-          </div>
-          <div id="structureSummary" class="summary-box">아직 구조를 불러오지 않았다.</div>
-          <div id="structurePane" class="structure-pane">문단 인덱스와 테이블 정보를 여기에 표시한다.</div>
-
-          <div class="section-header top-gap">
-            <h2>작업 이력</h2>
-            <p class="hint">최근에 어떤 작업을 했는지 시간순으로 확인한다.</p>
-          </div>
-          <div id="historyPane" class="history-pane">아직 작업 이력이 없다.</div>
-        </aside>
-      </main>
-
-      <section class="card result-panel top-gap">
-        <div class="output-header">
-          <div>
-            <h2>결과 / 디버그 로그</h2>
-            <p class="hint inline">백엔드 원본 응답과 최근 작업 상태를 함께 확인한다.</p>
-          </div>
-          <button id="clearBtn" class="ghost">지우기</button>
         </div>
-        <pre id="outputPane">아직 실행 결과가 없습니다.</pre>
       </section>
+
+      <section class="chat-panel">
+        <div class="panel-header">
+          <span>Claude 작업 패널</span>
+          <span id="selInfo" class="meta">선택된 문단 없음</span>
+        </div>
+        <div id="chatLog" class="chat-log"></div>
+        <form id="chatForm" class="chat-input">
+          <textarea
+            id="chatText"
+            rows="2"
+            placeholder="예: '3번째 문단을 공식 문서체로 바꿔줘', '문단 5 뒤에 결론 추가', '2번 문단 요약', '저장해줘'"
+          ></textarea>
+          <button type="submit" class="btn primary">보내기 ↵</button>
+        </form>
+      </section>
+    </main>
+
+    <div id="modal" class="modal hidden">
+      <div class="modal-card">
+        <div class="modal-head">
+          <b>파일 열기</b>
+          <button id="modalClose" class="btn ghost">✕</button>
+        </div>
+        <div class="modal-path">
+          <button id="upBtn" class="btn ghost">⬆</button>
+          <input id="pathInput" type="text" />
+          <button id="goBtn" class="btn">이동</button>
+        </div>
+        <div id="fileList" class="file-list"></div>
+      </div>
     </div>
 
     <script src="/app.js"></script>

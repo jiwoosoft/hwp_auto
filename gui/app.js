@@ -1,439 +1,416 @@
+/* master-of-hwp simplified GUI
+ * Chat-driven workflow. Left: document paragraphs. Right: chat.
+ */
+
 const state = {
   documentId: '',
-  browserPath: '/Users/moon',
-  lastText: '',
-  lastStructure: null,
-  history: [],
+  path: '',
+  selectedIndex: null,
+  structure: null,
+  saved: true,
   editorReady: false,
-  editorRequestId: 0,
-  pendingEditorRequests: new Map(),
-  aiPreview: null,
+  editorReqId: 0,
+  pendingEditorReqs: new Map(),
 };
 
+const $ = (id) => document.getElementById(id);
 const els = {
-  readinessText: document.getElementById('readinessText'),
-  saveText: document.getElementById('saveText'),
-  sessionText: document.getElementById('sessionText'),
-  documentMeta: document.getElementById('documentMeta'),
-  outputPane: document.getElementById('outputPane'),
-  structurePane: document.getElementById('structurePane'),
-  structureSummary: document.getElementById('structureSummary'),
-  historyPane: document.getElementById('historyPane'),
-  metaFormat: document.getElementById('metaFormat'),
-  metaChars: document.getElementById('metaChars'),
-  metaTables: document.getElementById('metaTables'),
-  pathInput: document.getElementById('pathInput'),
-  browsePath: document.getElementById('browsePath'),
-  browserPane: document.getElementById('browserPane'),
-  readonlyToggle: document.getElementById('readonlyToggle'),
-  paragraphIndex: document.getElementById('paragraphIndex'),
-  replaceText: document.getElementById('replaceText'),
-  insertText: document.getElementById('insertText'),
-  savePath: document.getElementById('savePath'),
-  refreshStatus: document.getElementById('refreshStatus'),
-  reloadDocument: document.getElementById('reloadDocument'),
-  browseBtn: document.getElementById('browseBtn'),
-  goParentBtn: document.getElementById('goParentBtn'),
-  usePathBtn: document.getElementById('usePathBtn'),
-  openBtn: document.getElementById('openBtn'),
-  textBtn: document.getElementById('textBtn'),
-  structureBtn: document.getElementById('structureBtn'),
-  replaceBtn: document.getElementById('replaceBtn'),
-  insertBtn: document.getElementById('insertBtn'),
-  saveBtn: document.getElementById('saveBtn'),
-  validateBtn: document.getElementById('validateBtn'),
-  clearBtn: document.getElementById('clearBtn'),
-  editorFrame: document.getElementById('editorFrame'),
-  aiTaskType: document.getElementById('aiTaskType'),
-  aiInstruction: document.getElementById('aiInstruction'),
-  aiPreviewBtn: document.getElementById('aiPreviewBtn'),
-  aiApplyBtn: document.getElementById('aiApplyBtn'),
-  aiPreviewPane: document.getElementById('aiPreviewPane'),
+  fileName: $('fileName'),
+  statusDot: $('statusDot'),
+  openBtn: $('openBtn'),
+  saveBtn: $('saveBtn'),
+  editorFrame: $('editorFrame'),
+  editorHint: $('editorHint'),
+  docMeta: $('docMeta'),
+  selInfo: $('selInfo'),
+  chatLog: $('chatLog'),
+  chatForm: $('chatForm'),
+  chatText: $('chatText'),
+  modal: $('modal'),
+  modalClose: $('modalClose'),
+  fileList: $('fileList'),
+  pathInput: $('pathInput'),
+  upBtn: $('upBtn'),
+  goBtn: $('goBtn'),
 };
 
-function renderOutput(label, payload) {
-  els.outputPane.textContent = `${label}\n\n${JSON.stringify(payload, null, 2)}`;
-}
-
-function addHistory(title, detail) {
-  state.history.unshift({ title, detail, time: new Date().toLocaleTimeString('ko-KR') });
-  state.history = state.history.slice(0, 20);
-  renderHistory();
-}
-
-function renderHistory() {
-  if (!state.history.length) {
-    els.historyPane.textContent = '아직 작업 이력이 없다.';
-    return;
-  }
-  els.historyPane.innerHTML = '';
-  for (const item of state.history) {
-    const row = document.createElement('div');
-    row.className = 'history-entry';
-    row.innerHTML = `<strong>${item.title}</strong><small>${item.time}</small><span>${item.detail}</span>`;
-    els.historyPane.appendChild(row);
-  }
-}
-
-async function postJson(url, body) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  });
-  return await res.json();
-}
-
-function updateSessionText() {
-  els.sessionText.textContent = state.documentId ? `열린 문서: ${state.documentId}` : '열린 문서 없음';
-}
-
-function updateMeta({ format = '-', chars = '-', tables = '-', path = '' } = {}) {
-  els.metaFormat.textContent = `형식: ${format}`;
-  els.metaChars.textContent = `글자 수: ${chars}`;
-  els.metaTables.textContent = `테이블: ${tables}`;
-  els.documentMeta.textContent = path ? `현재 대상: ${path}` : '문서를 열면 형식, 글자 수, 테이블 수를 보여준다.';
-}
-
-function renderAIPreview(preview) {
-  state.aiPreview = preview;
-  if (!preview) {
-    els.aiPreviewPane.value = '아직 AI 미리보기가 없다.';
-    return;
-  }
-  els.aiPreviewPane.value = `${preview.title}\n\n${preview.preview}\n\n${preview.content}`;
-}
-
-function renderStructure(structure) {
-  state.lastStructure = structure;
-  if (!structure) {
-    els.structureSummary.textContent = '아직 구조를 불러오지 않았다.';
-    els.structurePane.textContent = '문단 인덱스와 테이블 정보를 여기에 표시한다.';
-    return;
-  }
-  els.structureSummary.textContent = `문단 ${structure.paragraph_count}개 · 섹션 ${structure.section_count}개 · 테이블 ${structure.table_count}개`;
-  els.structurePane.innerHTML = '';
-
-  const sections = Array.isArray(structure.sections) ? structure.sections : [];
-  const paragraphs = Array.isArray(structure.paragraphs) ? structure.paragraphs : [];
-  const tables = Array.isArray(structure.tables) ? structure.tables : [];
-
-  for (const section of sections) {
-    const row = document.createElement('div');
-    row.className = 'structure-entry';
-    row.innerHTML = `<strong>섹션 ${section.section_index}: ${section.title}</strong><small>문단 시작 인덱스 ${section.paragraph_index}</small>`;
-    els.structurePane.appendChild(row);
-  }
-  for (const paragraph of paragraphs.slice(0, 20)) {
-    const row = document.createElement('div');
-    row.className = 'structure-entry';
-    row.innerHTML = `<strong>문단 ${paragraph.paragraph_index}</strong><small>${paragraph.text_preview || '(빈 문단)'}</small>`;
-    row.addEventListener('click', () => {
-      els.paragraphIndex.value = paragraph.paragraph_index;
-      addHistory('문단 선택', `문단 ${paragraph.paragraph_index}을 편집 대상으로 선택`);
+/* ---------- API helpers ---------- */
+async function api(path, body) {
+  try {
+    const res = await fetch(path, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body || {}),
     });
-    els.structurePane.appendChild(row);
+    return await res.json();
+  } catch (err) {
+    return { ok: false, message: String(err) };
   }
-  if (tables.length) {
-    for (const table of tables.slice(0, 12)) {
-      const row = document.createElement('div');
-      row.className = 'structure-entry';
-      row.innerHTML = `<strong>테이블 · ${table.rowCount || '?'}행 × ${table.colCount || '?'}열</strong><small>page ${table.pageIndex ?? '-'} / para ${table.paragraph ?? '-'}</small>`;
-      els.structurePane.appendChild(row);
+}
+
+async function getStatus() {
+  try {
+    const res = await fetch('/api/status');
+    const payload = await res.json();
+    const ready = Boolean(payload.integration?.data?.ready);
+    els.statusDot.classList.toggle('on', ready);
+    els.statusDot.classList.toggle('off', !ready);
+    els.statusDot.title = ready ? '서버 준비 완료' : '서버 연결됨 (읽기 엔진 부분 지원)';
+    return true;
+  } catch {
+    els.statusDot.classList.remove('on');
+    els.statusDot.classList.add('off');
+    els.statusDot.title = '서버 응답 없음';
+    return false;
+  }
+}
+
+/* ---------- Chat rendering ---------- */
+function showEmptyChat() {
+  els.chatLog.innerHTML = `
+    <div class="chat-empty">
+      자연어로 문서를 수정해 보세요.
+      <span class="ex">예: "3번째 문단을 공식 문서체로 바꿔줘"</span>
+      <span class="ex">예: "문단 5 뒤에 결론 추가해줘"</span>
+      <span class="ex">예: "2번 문단 요약" · "저장"</span>
+    </div>
+  `;
+}
+
+function addBubble(role, text) {
+  const div = document.createElement('div');
+  div.className = `bubble ${role}`;
+  div.textContent = text;
+  els.chatLog.appendChild(div);
+  els.chatLog.scrollTop = els.chatLog.scrollHeight;
+  return div;
+}
+
+function addPreviewCard(preview) {
+  const card = document.createElement('div');
+  card.className = 'preview-card';
+  card.innerHTML = `
+    <div class="title">${escapeHtml(preview.title || 'AI 제안')} · 문단 ${preview.paragraph_index}</div>
+    <div class="content">${escapeHtml(preview.content || '')}</div>
+    <div class="row">
+      <button class="btn primary apply-btn">적용</button>
+      <button class="btn cancel-btn">취소</button>
+    </div>
+  `;
+  els.chatLog.appendChild(card);
+  els.chatLog.scrollTop = els.chatLog.scrollHeight;
+
+  card.querySelector('.apply-btn').addEventListener('click', async () => {
+    card.querySelector('.apply-btn').disabled = true;
+    const res = await api('/api/ai/apply', {
+      document_id: state.documentId,
+      task_type: preview.task_type,
+      paragraph_index: preview.paragraph_index,
+      content: preview.content,
+    });
+    if (res.ok) {
+      state.saved = false;
+      els.saveBtn.disabled = false;
+      addBubble('system', `✓ 문단 ${preview.paragraph_index}에 적용됨`);
+      await reloadDocument();
+    } else {
+      addBubble('error', `적용 실패: ${res.message || '알 수 없는 오류'}`);
     }
-  }
+    card.remove();
+  });
+  card.querySelector('.cancel-btn').addEventListener('click', () => card.remove());
 }
 
-function renderBrowser(entries, currentPath, parentPath) {
-  state.browserPath = currentPath;
-  els.browsePath.value = currentPath;
-  els.browserPane.innerHTML = '';
-
-  const parent = document.createElement('div');
-  parent.className = 'browser-entry';
-  parent.innerHTML = `<strong>⬆ 상위 폴더</strong><small>${parentPath}</small>`;
-  parent.addEventListener('click', () => browse(parentPath));
-  els.browserPane.appendChild(parent);
-
-  for (const entry of entries) {
-    const row = document.createElement('div');
-    row.className = 'browser-entry';
-    const icon = entry.type === 'dir' ? '📁' : '📄';
-    row.innerHTML = `<strong>${icon} ${entry.name}</strong><small>${entry.path}</small>`;
-    row.addEventListener('click', () => {
-      if (entry.type === 'dir') {
-        browse(entry.path);
-        return;
-      }
-      els.pathInput.value = entry.path;
-      if (!els.savePath.value || els.savePath.value.includes('gui_saved') || els.savePath.value.includes('.gui-edited')) {
-        const ext = entry.path.endsWith('.hwp') ? '.hwp' : entry.path.endsWith('.hwpx') ? '.hwpx' : '.txt';
-        els.savePath.value = entry.path.replace(ext, `.gui-edited${ext}`);
-      }
-      addHistory('파일 선택', entry.path);
-      renderOutput('FILE_SELECTED', entry);
-    });
-    els.browserPane.appendChild(row);
-  }
-}
-
-async function browse(path = state.browserPath) {
-  const payload = await postJson('/api/browse', { path });
-  if (!payload.ok) {
-    renderOutput('BROWSE_FAILED', payload);
-    return;
-  }
-  renderBrowser(payload.data.entries, payload.data.current_path, payload.data.parent_path);
-}
-
-async function refreshStatus() {
-  const res = await fetch('/api/status');
-  const payload = await res.json();
-  const integration = payload.integration?.data || {};
-  const save = payload.save?.data || {};
-  els.readinessText.textContent = integration.ready
-    ? `읽기 준비 완료 · workspace ${payload.allowed_workspace}`
-    : '읽기 엔진 준비 안 됨';
-  els.saveText.textContent = save.ready
-    ? '저장 엔진 준비 완료'
-    : '저장 엔진은 부분 지원 상태';
-  renderOutput('STATUS', payload);
-}
-
-function base64ToArrayBuffer(base64) {
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-  return bytes.buffer;
-}
-
+/* ---------- Editor bridge (iframe postMessage) ---------- */
 function sendEditorRequest(method, params = {}) {
   if (!els.editorFrame?.contentWindow) {
-    return Promise.reject(new Error('Editor frame is not available'));
+    return Promise.reject(new Error('에디터 frame이 준비되지 않음'));
   }
-  state.editorRequestId += 1;
-  const id = `req-${state.editorRequestId}`;
+  state.editorReqId += 1;
+  const id = `req-${state.editorReqId}`;
   return new Promise((resolve, reject) => {
-    state.pendingEditorRequests.set(id, { resolve, reject });
+    state.pendingEditorReqs.set(id, { resolve, reject });
     els.editorFrame.contentWindow.postMessage(
-      {
-        type: 'rhwp-request',
-        id,
-        method,
-        params,
-      },
+      { type: 'rhwp-request', id, method, params },
       '*',
     );
+    setTimeout(() => {
+      if (state.pendingEditorReqs.has(id)) {
+        state.pendingEditorReqs.delete(id);
+        reject(new Error('에디터 응답 시간 초과'));
+      }
+    }, 15000);
   });
 }
 
 window.addEventListener('message', (event) => {
   const msg = event.data;
   if (!msg || msg.type !== 'rhwp-response' || !msg.id) return;
-  const pending = state.pendingEditorRequests.get(msg.id);
+  const pending = state.pendingEditorReqs.get(msg.id);
   if (!pending) return;
-  state.pendingEditorRequests.delete(msg.id);
-  if (msg.error) {
-    pending.reject(new Error(msg.error));
-    return;
-  }
-  pending.resolve(msg.result);
+  state.pendingEditorReqs.delete(msg.id);
+  if (msg.error) pending.reject(new Error(msg.error));
+  else pending.resolve(msg.result);
 });
 
 els.editorFrame.addEventListener('load', async () => {
   try {
     await sendEditorRequest('ready');
     state.editorReady = true;
-    addHistory('에디터 준비', 'rhwp-studio 에디터가 준비되었다.');
-  } catch (error) {
-    state.editorReady = false;
-    addHistory('에디터 준비 실패', String(error));
-  }
+  } catch { state.editorReady = false; }
 });
 
+function base64ToArrayBuffer(base64) {
+  const bin = atob(base64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out.buffer;
+}
+
 async function loadIntoEditor(path) {
-  const payload = await postJson('/api/file-bytes', { path });
-  if (!payload.ok) {
-    renderOutput('EDITOR_LOAD_FAILED', payload);
-    return false;
-  }
-  const buffer = base64ToArrayBuffer(payload.data.base64);
-  const result = await sendEditorRequest('loadFile', {
-    data: buffer,
-    fileName: payload.data.file_name,
-  });
-  addHistory('에디터 로드', `${payload.data.file_name} / ${result.pageCount || '?'}페이지`);
-  return true;
+  const res = await api('/api/file-bytes', { path });
+  if (!res.ok) throw new Error(res.message || '파일 바이트 로드 실패');
+  const buffer = base64ToArrayBuffer(res.data.base64);
+  await sendEditorRequest('loadFile', { data: buffer, fileName: res.data.file_name });
 }
 
-async function openDocument() {
-  const payload = await postJson('/api/open', {
-    path: els.pathInput.value,
-    readonly: els.readonlyToggle.checked,
-  });
-  state.documentId = payload.data?.document_id || '';
-  updateSessionText();
-  updateMeta({ path: payload.data?.path || els.pathInput.value });
-  addHistory('문서 열기', payload.data?.path || els.pathInput.value);
-  renderOutput('OPEN_DOCUMENT', payload);
-  if (payload.ok && state.editorReady) {
-    try {
-      await loadIntoEditor(payload.data.path || els.pathInput.value);
-    } catch (error) {
-      addHistory('에디터 로드 실패', String(error));
-    }
+/* ---------- Document meta rendering ---------- */
+function updateMeta(structure) {
+  state.structure = structure;
+  els.docMeta.textContent = `문단 ${structure.paragraph_count ?? 0}개 · 표 ${structure.table_count ?? 0}개`;
+  updateSelInfo();
+}
+
+function updateSelInfo() {
+  if (state.selectedIndex == null) {
+    els.selInfo.textContent = '선택된 문단 없음';
+  } else {
+    els.selInfo.textContent = `문단 ${state.selectedIndex + 1} 선택됨`;
   }
 }
 
-async function extractText() {
-  const payload = await postJson('/api/text', {
-    document_id: state.documentId,
-    path: state.documentId ? '' : els.pathInput.value,
-  });
-  if (payload.ok) {
-    state.lastText = payload.data.text || '';
-    updateMeta({
-      format: payload.data.source_format || '-',
-      chars: payload.data.char_count || '-',
-      tables: state.lastStructure?.table_count ?? '-',
-      path: payload.data.path || els.pathInput.value,
-    });
-    addHistory('텍스트 추출', `${payload.data.source_format} / ${payload.data.char_count} chars`);
-  }
-  renderOutput('EXTRACT_TEXT', payload);
-}
-
-async function extractStructure() {
-  const payload = await postJson('/api/structure', {
-    document_id: state.documentId,
-    path: state.documentId ? '' : els.pathInput.value,
-  });
-  if (payload.ok) {
-    renderStructure(payload.data);
-    updateMeta({
-      format: payload.data.source_format || '-',
-      chars: state.lastText ? state.lastText.length : '-',
-      tables: payload.data.table_count || 0,
-      path: payload.data.path || els.pathInput.value,
-    });
-    addHistory('구조 추출', `문단 ${payload.data.paragraph_count} / 테이블 ${payload.data.table_count}`);
-  }
-  renderOutput('EXTRACT_STRUCTURE', payload);
-}
-
-async function reloadDocumentState() {
-  if (!state.documentId && !els.pathInput.value) return;
-  await extractText();
-  await extractStructure();
-}
-
-async function previewWithClaude() {
-  const payload = await postJson('/api/ai/preview', {
-    document_id: state.documentId,
-    paragraph_index: Number(els.paragraphIndex.value),
-    task_type: els.aiTaskType.value,
-    instruction: els.aiInstruction.value,
-  });
-  if (payload.ok) {
-    renderAIPreview(payload.data);
-    addHistory('Claude 미리보기', `${payload.data.task_type} / 문단 ${payload.data.paragraph_index}`);
-  }
-  renderOutput('AI_PREVIEW', payload);
-}
-
-async function applyAIPreview() {
-  if (!state.aiPreview) {
-    renderOutput('AI_APPLY_SKIPPED', { ok: false, message: '적용할 AI 미리보기가 없습니다.' });
+/* ---------- Document flow ---------- */
+async function openDocumentByPath(path) {
+  addBubble('system', `📂 ${path} 여는 중...`);
+  const res = await api('/api/open', { path, readonly: false });
+  if (!res.ok) {
+    addBubble('error', `열기 실패: ${res.message || '알 수 없는 오류'}`);
     return;
   }
-  const payload = await postJson('/api/ai/apply', {
-    document_id: state.documentId,
-    task_type: state.aiPreview.task_type,
-    paragraph_index: state.aiPreview.paragraph_index,
-    content: state.aiPreview.content,
-  });
-  if (payload.ok) {
-    addHistory('Claude 적용', `${state.aiPreview.task_type} 결과를 문서에 반영`);
-    await reloadDocumentState();
+  state.documentId = res.data.document_id;
+  state.path = res.data.path;
+  state.saved = true;
+  els.fileName.textContent = state.path.split('/').pop();
+  els.saveBtn.disabled = false;
+  els.saveBtn.dataset.outputPath = suggestOutputPath(state.path);
+  els.editorHint?.classList.add('hidden');
+  addBubble('system', `✓ ${els.fileName.textContent} 열림`);
+
+  if (state.editorReady) {
+    try {
+      await loadIntoEditor(state.path);
+    } catch (err) {
+      addBubble('error', `에디터 로드 실패: ${err.message}`);
+    }
+  } else {
+    addBubble('system', 'ℹ rhwp 에디터 준비 대기 중 — 잠시 후 다시 시도합니다.');
+    setTimeout(() => {
+      if (state.editorReady && state.path) loadIntoEditor(state.path).catch(() => {});
+    }, 1500);
   }
-  renderOutput('AI_APPLY', payload);
+  await reloadDocument();
 }
 
-async function replaceParagraph() {
-  const payload = await postJson('/api/replace', {
-    document_id: state.documentId,
-    paragraph_index: Number(els.paragraphIndex.value),
-    new_text: els.replaceText.value,
-  });
-  if (payload.ok) {
-    addHistory('문단 치환', `문단 ${els.paragraphIndex.value} 수정`);
-    await reloadDocumentState();
+async function reloadDocument() {
+  if (!state.documentId) return;
+  const res = await api('/api/structure', { document_id: state.documentId });
+  if (res.ok) {
+    updateMeta(res.data);
+  } else {
+    addBubble('error', `구조 로드 실패: ${res.message || ''}`);
   }
-  renderOutput('REPLACE_PARAGRAPH', payload);
 }
 
-async function insertParagraph() {
-  const payload = await postJson('/api/insert', {
-    document_id: state.documentId,
-    after_paragraph_index: Number(els.paragraphIndex.value),
-    text: els.insertText.value,
-  });
-  if (payload.ok) {
-    addHistory('문단 삽입', `문단 ${els.paragraphIndex.value} 뒤에 새 문단 추가`);
-    await reloadDocumentState();
-  }
-  renderOutput('INSERT_PARAGRAPH', payload);
+function suggestOutputPath(inputPath) {
+  const idx = inputPath.lastIndexOf('.');
+  if (idx < 0) return inputPath + '.edited';
+  return inputPath.slice(0, idx) + '.edited' + inputPath.slice(idx);
 }
 
 async function saveDocument() {
-  const payload = await postJson('/api/save', {
+  if (!state.documentId) return;
+  const out = els.saveBtn.dataset.outputPath || suggestOutputPath(state.path);
+  addBubble('system', `💾 저장 중: ${out}`);
+  const res = await api('/api/save', {
     document_id: state.documentId,
-    output_path: els.savePath.value,
+    output_path: out,
   });
-  if (payload.ok) {
-    addHistory('저장', payload.data.output_path || els.savePath.value);
+  if (res.ok) {
+    state.saved = true;
+    addBubble('system', `✓ 저장 완료 (${res.data?.bytes_len || '?'} bytes)`);
+  } else {
+    addBubble('error', `저장 실패: ${res.message || ''}`);
   }
-  renderOutput('SAVE_AS', payload);
 }
 
-async function validateDocument() {
-  const payload = await postJson('/api/validate', {
-    path: els.savePath.value,
-  });
-  if (payload.ok) {
-    addHistory('검증', `${els.savePath.value} 검증 완료`);
+/* ---------- Natural language routing ---------- */
+function parseIntent(text) {
+  const t = text.trim();
+  if (!t) return null;
+
+  // Save
+  if (/^(저장|save)[\s!.?]*$/i.test(t) || /저장\s*해/.test(t)) {
+    return { type: 'save' };
   }
-  renderOutput('VALIDATE_DOCUMENT', payload);
+
+  // Detect paragraph number (1-based in user speech)
+  const paraMatch = t.match(/(?:문단|para(?:graph)?)\s*(\d+)|(\d+)\s*(?:번째|번)\s*문단/i);
+  let paragraphIndex = null;
+  if (paraMatch) {
+    const one = parseInt(paraMatch[1] || paraMatch[2], 10);
+    paragraphIndex = one - 1;
+  } else if (state.selectedIndex != null) {
+    paragraphIndex = state.selectedIndex;
+  }
+
+  // Insert after
+  if (/뒤에|다음에|이후에|추가|삽입|insert/.test(t)) {
+    if (paragraphIndex == null) return { type: 'need_index' };
+    return { type: 'ai_insert', paragraphIndex, instruction: t };
+  }
+
+  // Summarize
+  if (/요약|summar/i.test(t)) {
+    if (paragraphIndex == null) return { type: 'need_index' };
+    return { type: 'ai_summarize', paragraphIndex, instruction: t };
+  }
+
+  // Default: rewrite
+  if (paragraphIndex == null) return { type: 'need_index' };
+  return { type: 'ai_rewrite', paragraphIndex, instruction: t };
 }
 
-els.refreshStatus.addEventListener('click', refreshStatus);
-els.reloadDocument.addEventListener('click', reloadDocumentState);
-els.browseBtn.addEventListener('click', () => browse(els.browsePath.value));
-els.goParentBtn.addEventListener('click', () => browse(state.browserPath.split('/').slice(0, -1).join('/') || '/'));
-els.usePathBtn.addEventListener('click', () => {
-  els.pathInput.value = els.browsePath.value;
-  addHistory('경로 선택', els.pathInput.value);
-  renderOutput('PATH_SELECTED', { path: els.pathInput.value });
-});
-els.openBtn.addEventListener('click', openDocument);
-els.textBtn.addEventListener('click', extractText);
-els.structureBtn.addEventListener('click', extractStructure);
-els.aiPreviewBtn.addEventListener('click', previewWithClaude);
-els.aiApplyBtn.addEventListener('click', applyAIPreview);
-els.replaceBtn.addEventListener('click', replaceParagraph);
-els.insertBtn.addEventListener('click', insertParagraph);
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
+async function handleChat(text) {
+  addBubble('user', text);
+  const intent = parseIntent(text);
+  if (!intent) return;
+
+  if (intent.type === 'need_index') {
+    addBubble('ai', '어느 문단을 대상으로 할까요? 문단을 클릭하거나 "3번째 문단"처럼 지정해 주세요.');
+    return;
+  }
+
+  if (!state.documentId && intent.type !== 'save') {
+    addBubble('ai', '먼저 📂 열기로 문서를 불러와 주세요.');
+    return;
+  }
+
+  if (intent.type === 'save') {
+    await saveDocument();
+    return;
+  }
+
+  const taskMap = {
+    ai_rewrite: 'rewrite',
+    ai_summarize: 'summarize',
+    ai_insert: 'insert',
+  };
+  const taskType = taskMap[intent.type];
+  const thinking = addBubble('ai', '생각 중...');
+  const res = await api('/api/ai/preview', {
+    document_id: state.documentId,
+    paragraph_index: intent.paragraphIndex,
+    task_type: taskType,
+    instruction: intent.instruction,
+  });
+  thinking.remove();
+  if (!res.ok) {
+    addBubble('error', `AI 호출 실패: ${res.message || ''}`);
+    return;
+  }
+  addPreviewCard(res.data);
+}
+
+/* ---------- File browser modal ---------- */
+async function openModal(path) {
+  els.modal.classList.remove('hidden');
+  await browseTo(path || '/Users/moon');
+}
+function closeModal() { els.modal.classList.add('hidden'); }
+
+async function browseTo(path) {
+  const res = await api('/api/browse', { path });
+  if (!res.ok) {
+    els.fileList.innerHTML = `<div class="file-row"><span class="ic">⚠</span><span class="name">${escapeHtml(res.message || '')}</span></div>`;
+    return;
+  }
+  const { current_path, parent_path, entries } = res.data;
+  els.pathInput.value = current_path;
+  els.fileList.innerHTML = '';
+
+  if (parent_path && parent_path !== current_path) {
+    const up = document.createElement('div');
+    up.className = 'file-row';
+    up.innerHTML = `<span class="ic">⬆</span><span class="name">상위 폴더</span>`;
+    up.addEventListener('click', () => browseTo(parent_path));
+    els.fileList.appendChild(up);
+  }
+
+  for (const entry of entries) {
+    const row = document.createElement('div');
+    row.className = 'file-row';
+    const icon = entry.type === 'dir' ? '📁' : '📄';
+    row.innerHTML = `
+      <span class="ic">${icon}</span>
+      <span class="name">${escapeHtml(entry.name)}</span>
+      <span class="hint">${entry.type === 'dir' ? '' : (entry.path.split('.').pop())}</span>
+    `;
+    row.addEventListener('click', () => {
+      if (entry.type === 'dir') {
+        browseTo(entry.path);
+      } else {
+        closeModal();
+        openDocumentByPath(entry.path);
+      }
+    });
+    els.fileList.appendChild(row);
+  }
+}
+
+/* ---------- Wire up ---------- */
+els.openBtn.addEventListener('click', () => openModal(els.pathInput.value));
+els.modalClose.addEventListener('click', closeModal);
+els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeModal(); });
 els.saveBtn.addEventListener('click', saveDocument);
-els.validateBtn.addEventListener('click', validateDocument);
-els.clearBtn.addEventListener('click', () => {
-  els.outputPane.textContent = '아직 실행 결과가 없습니다.';
+els.upBtn.addEventListener('click', () => {
+  const parts = els.pathInput.value.split('/').filter(Boolean);
+  parts.pop();
+  browseTo('/' + parts.join('/'));
+});
+els.goBtn.addEventListener('click', () => browseTo(els.pathInput.value));
+els.pathInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') browseTo(els.pathInput.value);
 });
 
-updateSessionText();
-updateMeta();
-renderHistory();
-renderStructure(null);
-renderAIPreview(null);
-refreshStatus();
-browse('/Users/moon');
+els.chatForm.addEventListener('submit', (e) => {
+  e.preventDefault();
+  const text = els.chatText.value.trim();
+  if (!text) return;
+  els.chatText.value = '';
+  handleChat(text);
+});
+els.chatText.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    els.chatForm.dispatchEvent(new Event('submit'));
+  }
+});
+
+showEmptyChat();
+getStatus();

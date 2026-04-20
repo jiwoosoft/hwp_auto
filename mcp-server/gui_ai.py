@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 from cli_wrappers.claude_wrapper import ClaudeWrapperError, run_claude_json
 from orchestration.prompt_builder import build_paragraph_ai_prompt
 from orchestration.response_mapper import map_ai_preview
