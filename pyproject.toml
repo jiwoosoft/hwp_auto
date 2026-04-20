@@ -24,7 +24,9 @@ classifiers = [
     "Topic :: Office/Business",
     "Topic :: Text Processing",
 ]
-dependencies = []
+dependencies = [
+    "olefile>=0.47",
+]
 
 [project.optional-dependencies]
 dev = [

@@ -15,12 +15,12 @@ alongside it and are added in Phase 1 as the parse path is wired up.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from pathlib import Path
 from typing import Self
 
 
-class SourceFormat(str, Enum):
+class SourceFormat(StrEnum):
     """Supported HWP document formats."""
 
     HWP = "hwp"

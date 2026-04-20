@@ -28,9 +28,7 @@ class TestRoundtrip:
             pytest.skip("No sample HWP/HWPX files available")
         reports = [measure_roundtrip(p) for p in sample_files]
         failures = [r for r in reports if not r.byte_equal]
-        assert not failures, (
-            f"{len(failures)}/{len(reports)} samples failed byte-equal roundtrip"
-        )
+        assert not failures, f"{len(failures)}/{len(reports)} samples failed byte-equal roundtrip"
 
     def test_report_score_is_one_on_byte_equality(self, tmp_hwpx: Path) -> None:
         report = measure_roundtrip(tmp_hwpx)

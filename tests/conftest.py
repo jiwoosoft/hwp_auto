@@ -22,9 +22,7 @@ def sample_files(samples_dir: Path) -> list[Path]:
     """Every .hwp / .hwpx file found under samples/."""
     if not samples_dir.exists():
         return []
-    return sorted(
-        p for p in samples_dir.rglob("*") if p.suffix.lower() in {".hwp", ".hwpx"}
-    )
+    return sorted(p for p in samples_dir.rglob("*") if p.suffix.lower() in {".hwp", ".hwpx"})
 
 
 @pytest.fixture
