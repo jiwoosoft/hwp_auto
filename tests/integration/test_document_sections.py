@@ -10,9 +10,8 @@ Current state:
     * `hwpx_reader.count_sections` — pending (spike #002)
     * `HwpDocument.sections_count` — pending (integration task #003)
 
-Until `sections_count` lands on `HwpDocument`, these tests are marked
-xfail so they document the contract without breaking CI. Flipping them
-to green is the integration milestone.
+Status: integration task #003 is now complete — `sections_count` is
+wired on `HwpDocument` and dispatches on `source_format`.
 """
 
 from __future__ import annotations
@@ -42,17 +41,15 @@ def hwpx_sample(samples_dir: Path) -> Path:
     return sample
 
 
-@pytest.mark.xfail(reason="HwpDocument.sections_count pending integration task #003", strict=True)
 def test_hwp_document_exposes_sections_count(hwp_sample: Path) -> None:
     doc = HwpDocument.open(hwp_sample)
-    count = doc.sections_count  # type: ignore[attr-defined]
+    count = doc.sections_count
     assert isinstance(count, int)
     assert count >= 1
 
 
-@pytest.mark.xfail(reason="HwpDocument.sections_count pending integration task #003", strict=True)
 def test_hwpx_document_exposes_sections_count(hwpx_sample: Path) -> None:
     doc = HwpDocument.open(hwpx_sample)
-    count = doc.sections_count  # type: ignore[attr-defined]
+    count = doc.sections_count
     assert isinstance(count, int)
     assert count >= 1

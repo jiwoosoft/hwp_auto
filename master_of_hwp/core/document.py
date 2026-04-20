@@ -97,3 +97,34 @@ class HwpDocument:
     def byte_size(self) -> int:
         """Size of the raw bytes in memory."""
         return len(self.raw_bytes)
+
+    @property
+    def sections_count(self) -> int:
+        """Number of sections in the document.
+
+        Dispatches to the format-specific reader. Both readers share the
+        invariant `count_sections -> int >= 1`; a value of 0 never occurs
+        because malformed inputs raise a `*FormatError` instead.
+
+        Returns:
+            The number of sections (HWP 5.0 `BodyText/SectionN` streams, or
+            HWPX `Contents/sectionN.xml` parts / OPF spine entries).
+
+        Raises:
+            master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
+                If the HWP 5.0 binary is malformed.
+            master_of_hwp.adapters.hwpx_reader.HwpxFormatError:
+                If the HWPX container is malformed.
+        """
+        from master_of_hwp.adapters.hwp5_reader import (
+            count_sections as _hwp5_count,
+        )
+        from master_of_hwp.adapters.hwpx_reader import (
+            count_sections as _hwpx_count,
+        )
+
+        if self.source_format is SourceFormat.HWP:
+            return _hwp5_count(self.raw_bytes)
+        if self.source_format is SourceFormat.HWPX:
+            return _hwpx_count(self.raw_bytes)
+        raise AssertionError(f"Unhandled source_format: {self.source_format!r}")
