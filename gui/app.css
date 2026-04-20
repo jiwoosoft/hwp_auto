@@ -96,21 +96,6 @@ body {
   border: none;
   background: #ffffff;
 }
-.editor-hint {
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px dashed #d1d5db;
-  border-radius: 8px;
-  padding: 14px 18px;
-  color: #374151;
-  font-size: 13px;
-  text-align: center;
-  pointer-events: none;
-  max-width: 80%;
-}
-.editor-hint.hidden { display: none; }
 
 .chat-log {
   flex: 1;

@@ -21,7 +21,6 @@ const els = {
   openBtn: $('openBtn'),
   saveBtn: $('saveBtn'),
   editorFrame: $('editorFrame'),
-  editorHint: $('editorHint'),
   docMeta: $('docMeta'),
   selInfo: $('selInfo'),
   chatLog: $('chatLog'),
@@ -236,10 +235,6 @@ async function openDocumentByPath(path) {
   els.fileName.textContent = state.path.split('/').pop();
   els.saveBtn.disabled = false;
   els.saveBtn.dataset.outputPath = suggestOutputPath(state.path);
-  if (els.editorHint) {
-    els.editorHint.classList.add('hidden');
-    els.editorHint.style.display = 'none';
-  }
   addBubble('system', `✓ ${els.fileName.textContent} 열림`);
 
   if (state.editorReady) {
