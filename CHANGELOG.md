@@ -5,7 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.2.0] - 2026-04-21
+## master-of-hwp-studio [0.2.0] - 2026-04-21
+
+### Added
+
+- **rhwp WYSIWYG editor bundled** — no separate Node.js install needed. `mohwp studio` now starts the bundled editor on `localhost:7700` automatically.
+- HTTP API endpoints on the Studio server: `/api/status`, `/api/browse`, `/api/open`, `/api/structure`, `/api/save`, `/api/file-bytes`, `/api/ai/preview`, `/api/ai/apply`
+- Help modal (❔ 도움말) with 5-section user guide
+- Rebrand: header title "한글의 달인"
+- Modern UI polish (glass surfaces, violet/indigo gradient, pulse status, bubble animations)
+- `--with-editor / --no-editor` CLI flag
+
+### Fixed
+
+- `/api/file-bytes` returning wrong JSON key caused `atob` error on file open
+- rhwp editor: auto-enter cell-selection mode on cross-cell drag
+
+### Acknowledgments
+
+The bundled WYSIWYG editor is based on [edwardkim/rhwp](https://github.com/edwardkim/rhwp). Thank you, @edwardkim.
+
+## master-of-hwp [0.2.0] - 2026-04-21
 
 ### Added
 

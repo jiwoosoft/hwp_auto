@@ -55,9 +55,16 @@ black --check .
 
 ### 🔴 현재 받지 않음
 
-- 에디터(`vendor/rhwp-main/rhwp-studio/`) 새 기능 — **Feature Freeze** 중
 - 플러그인 시스템, 마이크로서비스화
 - 다국어 UI (Korean-first 유지)
+
+## WYSIWYG 에디터 (rhwp) 기여
+
+`master-of-hwp-studio` 에 번들된 WYSIWYG 에디터는 [edwardkim/rhwp](https://github.com/edwardkim/rhwp) 의 Rust + WebAssembly 구현을 기반으로 합니다.
+
+- **에디터 엔진 자체 개선** (Rust/WASM 파서, 레이아웃 엔진, 셀 선택 로직 등) → 원본 저장소에 PR: https://github.com/edwardkim/rhwp
+- **Python / Studio 통합** (이 저장소): `master_of_hwp/`, `studio/`, GUI <-> Core API 연동
+- 주의: `studio/master_of_hwp_studio/rhwp_editor/` 는 빌드된 산출물이므로 직접 수정하지 말 것. `vendor/rhwp-main/rhwp-studio/` 의 소스를 고친 뒤 `npm run build` 로 재생성.
 
 ## 버그 리포트
 

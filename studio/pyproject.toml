@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "master-of-hwp-studio"
-version = "0.1.2"
+version = "0.2.0"
 description = "One-click HWP editing Studio for non-developers — MCP server + web GUI bundled"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -30,6 +30,9 @@ dev = [
 
 [tool.hatch.build.targets.wheel]
 packages = ["master_of_hwp_studio"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"master_of_hwp_studio/rhwp_editor" = "master_of_hwp_studio/rhwp_editor"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

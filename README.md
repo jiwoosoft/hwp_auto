@@ -99,13 +99,15 @@ the `LLMProvider` Protocol — plug in OpenAI, local Ollama, etc.
 
 ## Studio (Non-developer GUI)
 
-For teachers / office workers who want a one-click experience:
+For teachers / office workers who want a one-click experience — **rhwp WYSIWYG editor is now bundled** (v0.2+):
 
 ```bash
 pip install master-of-hwp-studio
-mohwp studio                    # launches web GUI + MCP server
+mohwp studio                    # launches web GUI + MCP server + bundled rhwp editor
 mohwp mcp-config                # prints Claude Desktop config snippet
 ```
+
+No Node.js setup required. The rhwp editor runs automatically on `localhost:7700`.
 
 See [`studio/README.md`](studio/README.md).
 
@@ -148,7 +150,24 @@ Details: [docs/ROADMAP.md](docs/ROADMAP.md), [docs/ARCHITECTURE.md](docs/ARCHITE
 
 ## Contributing
 
-Contributions welcome. See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, test expectations, and scope.
+**Contributions are very welcome** — this is an open, community-driven project.
+
+- 🐛 **Bug reports / feature requests:** [open an issue](https://github.com/reallygood83/master-of-hwp/issues)
+- 💻 **Code contributions:** fork → branch → PR. See [CONTRIBUTING.md](CONTRIBUTING.md) for dev setup, test expectations, and scope.
+- 💬 **Questions / discussion:** [GitHub Discussions](https://github.com/reallygood83/master-of-hwp/discussions)
+
+Areas we'd love help on:
+- HWP 5.0 CFBF resize writer (v0.3)
+- Paragraph insert / delete operations for both formats
+- Additional LLM providers (OpenAI, Gemini, local Ollama) on top of the `LLMProvider` Protocol
+- Windows / Linux installer for `master-of-hwp-studio`
+- Accessibility improvements to the web GUI
+
+No contribution is too small. Documentation fixes, typo corrections, and sample HWP files are equally valuable.
+
+## Acknowledgments
+
+The WYSIWYG editor bundled in `master-of-hwp-studio` is built on **[rhwp](https://github.com/edwardkim/rhwp)** by **[@edwardkim](https://github.com/edwardkim)** — a Rust + WebAssembly HWP parsing / rendering engine. This project would not be possible without their work. If you find `master-of-hwp-studio` useful, please star rhwp too.
 
 ## License
 

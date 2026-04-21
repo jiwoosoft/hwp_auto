@@ -4,10 +4,13 @@
 [![Python](https://img.shields.io/pypi/pyversions/master-of-hwp.svg)](https://pypi.org/project/master-of-hwp/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-> 🎉 **v0.1.0 공개 (2026-04-21)** — `pip install master-of-hwp`
-> 읽기 API 완성 + HWPX 문단 편집 기본기가 들어간 첫 PyPI 릴리스입니다.
+> 🎉 **v0.2.0 공개 (2026-04-21)** — `pip install master-of-hwp`
+> 읽기 API 완성 + HWPX 문단/셀 편집 + AI 자연어 편집 루프.
+> Studio 패키지는 rhwp WYSIWYG 에디터까지 번들: `pip install master-of-hwp-studio`
 > 영어 요약: [README.md](README.md). 릴리스 노트: [CHANGELOG.md](CHANGELOG.md).
 > 로드맵: [docs/ROADMAP.md](docs/ROADMAP.md), 아키텍처: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+>
+> **기여 환영**: 이슈/PR은 [GitHub](https://github.com/reallygood83/master-of-hwp) 에서 받습니다. WYSIWYG 편집 엔진은 [edwardkim/rhwp](https://github.com/edwardkim/rhwp) 의 훌륭한 Rust+WASM 구현을 사용합니다.
 
 ## 🚀 30초 시작
 
