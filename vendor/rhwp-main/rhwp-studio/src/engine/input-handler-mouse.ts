@@ -1068,6 +1068,41 @@ export function onMouseMove(this: any, e: MouseEvent): void {
       const anchorPos = selSnap?.anchor;
       const anchorInCell = anchorPos?.parentParaIndex !== undefined;
       const hitInCell = hit.parentParaIndex !== undefined;
+
+      // 셀 ↔ 셀 드래그: 같은 표 안에서 서로 다른 셀로 드래그하면
+      // 자동으로 셀 선택 모드(cell selection)로 전환한다.
+      // → 사용자가 표 안에서 범위 드래그 기대한다는 가장 흔한 케이스를 해결.
+      if (
+        anchorInCell && hitInCell &&
+        anchorPos && anchorPos.parentParaIndex === hit.parentParaIndex &&
+        anchorPos.controlIndex === hit.controlIndex &&
+        anchorPos.cellIndex !== undefined && hit.cellIndex !== undefined &&
+        anchorPos.cellIndex !== hit.cellIndex
+      ) {
+        try {
+          // 시작 셀 위치로 커서 이동 후 셀 선택 모드 진입 (최초 1회)
+          if (!this.cursor.isInCellSelectionMode()) {
+            this.cursor.moveTo(anchorPos);
+            this.cursor.enterCellSelectionMode();
+          }
+          // 현재 hit 셀의 row/col을 구해서 선택 확장
+          const hitInfo = this.wasm.getCellInfo(
+            hit.sectionIndex,
+            hit.parentParaIndex as number,
+            hit.controlIndex as number,
+            hit.cellIndex as number,
+          );
+          this.cursor.shiftSelectCell(hitInfo.row, hitInfo.col);
+          this.updateCellSelection();
+          // 텍스트 캐럿은 숨기고 셀 선택이 시각적 주체가 되도록
+          this.caret.hide();
+          this.selectionRenderer.clear();
+          return;
+        } catch {
+          // getCellInfo 실패 시 기존 텍스트 커서 동작으로 폴백
+        }
+      }
+
       let coerced = hit;
       if (anchorPos && !anchorInCell && hitInCell) {
         const parentPara = hit.parentParaIndex as number;

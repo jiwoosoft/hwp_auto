@@ -289,7 +289,8 @@ def _handle_file_bytes(body: dict[str, Any]) -> dict[str, Any]:
         "ok": True,
         "data": {
             "path": str(path),
-            "bytes_base64": base64.b64encode(data).decode("ascii"),
+            "file_name": path.name,
+            "base64": base64.b64encode(data).decode("ascii"),
             "size": len(data),
         },
     }

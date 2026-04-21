@@ -3,19 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>master-of-hwp</title>
+    <title>한글의 달인</title>
     <link rel="stylesheet" href="/app.css" />
   </head>
   <body>
     <header class="topbar">
       <div class="brand">
-        <span class="logo">📝</span>
-        <span class="title">master-of-hwp</span>
+        <span class="logo">한</span>
+        <span class="title">한글의 달인</span>
         <span id="fileName" class="filename">파일 없음</span>
       </div>
       <div class="actions">
-        <button id="openBtn" class="btn primary">📂 열기</button>
-        <button id="saveBtn" class="btn" disabled>💾 저장</button>
+        <button id="helpBtn" class="btn ghost" title="사용 방법 보기">❔ 도움말</button>
+        <button id="openBtn" class="btn primary">파일 열기</button>
+        <button id="saveBtn" class="btn" disabled>저장</button>
         <span id="statusDot" class="dot off" title="서버 상태"></span>
       </div>
     </header>
@@ -69,6 +70,74 @@
           <button id="goBtn" class="btn">이동</button>
         </div>
         <div id="fileList" class="file-list"></div>
+      </div>
+    </div>
+
+    <div id="helpModal" class="modal hidden">
+      <div class="modal-card help-card">
+        <div class="modal-head">
+          <b>한글의 달인 사용 방법</b>
+          <button id="helpClose" class="btn ghost">✕</button>
+        </div>
+        <div class="help-body">
+          <section class="help-section">
+            <h3>1. 시작하기</h3>
+            <ol>
+              <li>오른쪽 위 <b>파일 열기</b> 를 누르고 <code>.hwp</code> / <code>.hwpx</code> 문서를 선택하세요.</li>
+              <li>문서가 열리면 상단 바에 파일명이 표시됩니다.</li>
+            </ol>
+          </section>
+
+          <section class="help-section">
+            <h3>2. AI 에게 편집 요청하기</h3>
+            <p>오른쪽 <b>AI 작업 패널</b> 아래쪽 입력창에 자연어로 요청하세요.</p>
+            <div class="help-examples">
+              <div class="ex">"첫 번째 문단을 공식 문서체로 바꿔줘"</div>
+              <div class="ex">"문단 5 뒤에 결론 추가해줘"</div>
+              <div class="ex">"선택한 부분을 한 줄로 요약해줘"</div>
+              <div class="ex">"<code>보도자료</code>를 <code>공지사항</code>으로 바꿔줘"</div>
+            </div>
+            <p class="help-tip">
+              💡 미리보기 카드가 뜨면 <b>삽입</b> 을 눌러 실제 문서에 반영하세요.
+              마음에 들지 않으면 그냥 다음 요청을 입력하면 됩니다.
+            </p>
+          </section>
+
+          <section class="help-section">
+            <h3>3. 저장하기</h3>
+            <p>편집 후 상단 <b>저장</b> 버튼을 누르면 원본 옆에 <code>.edited.hwpx</code> 로 저장됩니다. 원본은 절대 덮어쓰지 않습니다.</p>
+          </section>
+
+          <section class="help-section">
+            <h3>4. 지금 지원되는 것 / 안 되는 것</h3>
+            <table class="help-matrix">
+              <thead>
+                <tr><th>기능</th><th>HWPX (.hwpx)</th><th>HWP (.hwp)</th></tr>
+              </thead>
+              <tbody>
+                <tr><td>열기 / 읽기</td><td>✅</td><td>✅</td></tr>
+                <tr><td>문단 교체</td><td>✅</td><td>⚠️ 같은 길이만</td></tr>
+                <tr><td>표 셀 편집</td><td>✅</td><td>❌ (다음 버전)</td></tr>
+                <tr><td>문단 삽입 / 삭제</td><td>❌ (다음 버전)</td><td>❌ (다음 버전)</td></tr>
+              </tbody>
+            </table>
+          </section>
+
+          <section class="help-section">
+            <h3>5. Claude Desktop 에서도 바로 쓰기 (선택)</h3>
+            <p>터미널에서 <code>mohwp mcp-config</code> 를 실행하면 Claude Desktop 설정에 붙여넣을 JSON 이 출력됩니다. 설정 후 Claude Desktop 재시작 → 자연어로 HWP 편집 도구가 자동 연결됩니다.</p>
+          </section>
+
+          <section class="help-section help-footer">
+            <p>
+              <a href="https://github.com/reallygood83/master-of-hwp" target="_blank" rel="noopener">GitHub</a>
+              &nbsp;·&nbsp;
+              <a href="https://pypi.org/project/master-of-hwp-studio/" target="_blank" rel="noopener">PyPI</a>
+              &nbsp;·&nbsp;
+              MIT License
+            </p>
+          </section>
+        </div>
       </div>
     </div>
 

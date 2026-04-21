@@ -644,6 +644,20 @@ els.openBtn.addEventListener('click', () => openModal(els.pathInput.value));
 els.modalClose.addEventListener('click', closeModal);
 els.modal.addEventListener('click', (e) => { if (e.target === els.modal) closeModal(); });
 els.saveBtn.addEventListener('click', saveDocument);
+
+const helpModal = document.getElementById('helpModal');
+const helpBtn = document.getElementById('helpBtn');
+const helpClose = document.getElementById('helpClose');
+if (helpBtn && helpModal && helpClose) {
+  const openHelp = () => helpModal.classList.remove('hidden');
+  const closeHelp = () => helpModal.classList.add('hidden');
+  helpBtn.addEventListener('click', openHelp);
+  helpClose.addEventListener('click', closeHelp);
+  helpModal.addEventListener('click', (e) => { if (e.target === helpModal) closeHelp(); });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !helpModal.classList.contains('hidden')) closeHelp();
+  });
+}
 els.upBtn.addEventListener('click', () => {
   const parts = els.pathInput.value.split('/').filter(Boolean);
   parts.pop();
