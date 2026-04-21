@@ -14,6 +14,8 @@ alongside it and are added in Phase 1 as the parse path is wired up.
 
 from __future__ import annotations
 
+import re
+from collections.abc import Iterator
 from dataclasses import dataclass, field
 from enum import StrEnum
 from pathlib import Path
@@ -274,3 +276,87 @@ class HwpDocument:
             source_format=self.source_format,
             raw_bytes=new_bytes,
         )
+
+    @property
+    def plain_text(self) -> str:
+        """Concatenate all sections into a single format-agnostic string.
+
+        Section boundaries are joined with `"\\n\\n"` (blank line). HWP 5.0
+        paragraph terminators (`\\r`) are normalized to `\\n` so the output
+        is directly comparable across formats.
+
+        Returns:
+            One string representing the document's readable text.
+
+        Raises:
+            master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
+                If the HWP 5.0 binary cannot be parsed.
+            master_of_hwp.adapters.hwpx_reader.HwpxFormatError:
+                If the HWPX container is malformed.
+
+        Example:
+            >>> doc = HwpDocument.open("report.hwpx")
+            >>> print(doc.plain_text[:50])
+        """
+        sections = self.section_texts
+        if self.source_format is SourceFormat.HWP:
+            sections = [section.replace("\r", "\n") for section in sections]
+        return "\n\n".join(sections)
+
+    def iter_paragraphs(self) -> Iterator[tuple[int, int, str]]:
+        """Iterate over every paragraph in document order.
+
+        Yields:
+            `(section_index, paragraph_index, text)` tuples. Empty
+            paragraphs are yielded as well (HWPX may preserve them for
+            layout intent).
+
+        Example:
+            >>> for s, p, text in doc.iter_paragraphs():
+            ...     if "TODO" in text:
+            ...         print(f"§{s}.{p}: {text}")
+        """
+        for section_index, paragraphs in enumerate(self.section_paragraphs):
+            for paragraph_index, text in enumerate(paragraphs):
+                yield section_index, paragraph_index, text
+
+    def find_paragraphs(
+        self,
+        query: str,
+        *,
+        regex: bool = False,
+        case_sensitive: bool = True,
+    ) -> list[tuple[int, int, str]]:
+        """Find paragraphs whose text matches `query`.
+
+        Args:
+            query: Substring (default) or regex pattern (when `regex=True`).
+            regex: Treat `query` as a regular expression (anchored with
+                `re.search`, not `re.fullmatch`).
+            case_sensitive: When `False`, match case-insensitively.
+
+        Returns:
+            List of `(section_index, paragraph_index, text)` for every
+            matching paragraph, in document order.
+
+        Raises:
+            re.error: If `regex=True` and `query` is not a valid pattern.
+
+        Example:
+            >>> hits = doc.find_paragraphs("보도자료")
+            >>> for s, p, text in hits:
+            ...     print(f"§{s}.{p}: {text}")
+        """
+        if regex:
+            flags = 0 if case_sensitive else re.IGNORECASE
+            pattern = re.compile(query, flags)
+            return [
+                (s, p, text)
+                for s, p, text in self.iter_paragraphs()
+                if pattern.search(text) is not None
+            ]
+
+        if case_sensitive:
+            return [(s, p, text) for s, p, text in self.iter_paragraphs() if query in text]
+        needle = query.lower()
+        return [(s, p, text) for s, p, text in self.iter_paragraphs() if needle in text.lower()]
