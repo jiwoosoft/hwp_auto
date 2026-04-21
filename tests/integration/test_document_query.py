@@ -125,3 +125,50 @@ def test_find_then_replace_round_trip(hwpx_sample: Path) -> None:
     edited = doc.replace_paragraph(section_index, paragraph_index, replacement)
     assert edited.section_paragraphs[section_index][paragraph_index] == replacement
     assert edited.find_paragraphs(replacement) == [(section_index, paragraph_index, replacement)]
+
+
+# ---- summary() ------------------------------------------------------
+
+
+def test_summary_returns_expected_keys(hwpx_sample: Path) -> None:
+    doc = HwpDocument.open(hwpx_sample)
+    info = doc.summary()
+    expected_keys = {
+        "format",
+        "filename",
+        "byte_size",
+        "sections_count",
+        "paragraph_count",
+        "non_empty_paragraph_count",
+        "table_count",
+        "first_paragraphs",
+    }
+    assert set(info.keys()) == expected_keys
+
+
+def test_summary_does_not_leak_full_path(hwpx_sample: Path) -> None:
+    doc = HwpDocument.open(hwpx_sample)
+    info = doc.summary()
+    filename = info["filename"]
+    assert filename == hwpx_sample.name
+    assert isinstance(filename, str)
+    assert "/" not in filename
+
+
+def test_summary_previews_are_truncated(hwpx_sample: Path) -> None:
+    doc = HwpDocument.open(hwpx_sample)
+    info = doc.summary(max_preview=20, preview_count=2)
+    previews = info["first_paragraphs"]
+    assert isinstance(previews, list)
+    assert len(previews) <= 2
+    for preview in previews:
+        assert isinstance(preview, str)
+        assert len(preview) <= 20
+
+
+def test_summary_counts_match_section_data(hwpx_sample: Path) -> None:
+    doc = HwpDocument.open(hwpx_sample)
+    info = doc.summary()
+    assert info["sections_count"] == doc.sections_count
+    assert info["paragraph_count"] == sum(len(s) for s in doc.section_paragraphs)
+    assert info["table_count"] == sum(len(s) for s in doc.section_tables)

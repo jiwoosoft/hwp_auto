@@ -360,3 +360,54 @@ class HwpDocument:
             return [(s, p, text) for s, p, text in self.iter_paragraphs() if query in text]
         needle = query.lower()
         return [(s, p, text) for s, p, text in self.iter_paragraphs() if needle in text.lower()]
+
+    def summary(self, *, max_preview: int = 80, preview_count: int = 3) -> dict[str, object]:
+        """Return a compact structural overview for AI context or logs.
+
+        The returned dict is JSON-serializable and intended to be
+        included in LLM prompts as a "what kind of document is this"
+        briefing. The full path is deliberately omitted (privacy).
+
+        Args:
+            max_preview: Maximum character length of each preview string.
+            preview_count: Maximum number of non-empty paragraph
+                previews to include.
+
+        Returns:
+            A dict with keys:
+              - `format`: "hwp" or "hwpx"
+              - `filename`: basename of `self.path` (not the full path)
+              - `byte_size`: size of `raw_bytes` in bytes
+              - `sections_count`: number of sections
+              - `paragraph_count`: total paragraphs across all sections
+              - `non_empty_paragraph_count`: paragraphs with at least
+                one non-whitespace character
+              - `table_count`: total tables across all sections
+              - `first_paragraphs`: up to `preview_count` non-empty
+                paragraph previews, each truncated to `max_preview`
+
+        Raises:
+            master_of_hwp.adapters.hwp5_reader.Hwp5FormatError:
+                If the HWP 5.0 binary cannot be parsed.
+            master_of_hwp.adapters.hwpx_reader.HwpxFormatError:
+                If the HWPX container is malformed.
+
+        Example:
+            >>> info = doc.summary()
+            >>> print(info["sections_count"], info["non_empty_paragraph_count"])
+        """
+        paragraphs = self.section_paragraphs
+        total_paragraphs = sum(len(s) for s in paragraphs)
+        non_empty = [text for section in paragraphs for text in section if text.strip()]
+        previews = [text[:max_preview] for text in non_empty[:preview_count]]
+        table_count = sum(len(section) for section in self.section_tables)
+        return {
+            "format": self.source_format.value,
+            "filename": self.path.name,
+            "byte_size": self.byte_size,
+            "sections_count": self.sections_count,
+            "paragraph_count": total_paragraphs,
+            "non_empty_paragraph_count": len(non_empty),
+            "table_count": table_count,
+            "first_paragraphs": previews,
+        }
