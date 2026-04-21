@@ -48,27 +48,36 @@
 
 ## Phase별 계획
 
-### Phase 0: Foundation (진행 중)
+### Phase 0: Foundation (완료 ✅)
 - [x] 이슈 #12~#15 에디터 UX 수정
-- [ ] `master_of_hwp/` 패키지 스켈레톤
-- [ ] `HwpDocument.open()` Core API
-- [ ] Fidelity 벤치마크 하네스
-- [ ] GitHub Actions CI
-- [ ] CONTRIBUTING / 이슈 템플릿
+- [x] `master_of_hwp/` 패키지 스켈레톤
+- [x] `HwpDocument.open()` Core API
+- [x] Fidelity 벤치마크 하네스
+- [x] GitHub Actions CI (ruff/black/mypy/pytest)
+- [x] CONTRIBUTING / 이슈 템플릿
 
-### Phase 1: Core v0.1
-- [ ] `HwpDocument` 읽기 API 완성 (sections, paragraphs, tables)
-- [ ] Idempotent 연산 6종 (replace/insert/delete + 표)
-- [ ] Property-based testing (Hypothesis)
-- [ ] Type hints 100%, docstring 100%
-- [ ] PyPI 배포
+### Phase 1: Core v0.1 (2026-04-21 릴리스 준비 중)
+- [x] `HwpDocument` 읽기 API 완성 (sections, paragraphs, tables, plain_text, iter_paragraphs, find_paragraphs, summary)
+- [x] HWPX `replace_paragraph` (write path, byte-level fidelity)
+- [x] HWP 5.0 `replace_paragraph` — same-length only (xfail로 기록된 gap)
+- [x] Property-based testing (Hypothesis) — replace idempotency, locality
+- [x] Type hints 100%, docstring 100%, mypy strict 통과
+- [x] `ai/` 패키지 스켈레톤 (Phase 2 공개 surface 고정)
+- [ ] PyPI 배포 — `v0.1.0` 태그 + Trusted Publishing (수동 단계)
 
-### Phase 2: Agentic v0.2
-- [ ] `doc.ai_edit(자연어)` 루프 (의도→위치→연산→검증→롤백)
+### Phase 2: v0.2 — Write path 확장
+- [ ] HWP 5.0 CFBF stream resize writer (다른 길이 replace)
+- [ ] `insert_paragraph` / `delete_paragraph` (두 포맷)
+- [ ] 표 셀 편집 프리미티브
 - [ ] LLM provider 추상화 (Claude 기본, 교체 가능)
+
+### Phase 3: v0.3 — Agentic 편집 루프
+- [ ] `doc.ai_edit(자연어)` 풀 루프 (의도→위치→연산→검증→롤백)
+- [ ] `ai/locator.locate_targets()` 실 구현 (find_paragraphs + LLM 재랭킹)
+- [ ] `ai/rollback.RollbackTransaction.apply()` 트랜잭셔널 실행
 - [ ] 노트북 예제 3개
 
-### Phase 3: Ecosystem Open
+### Phase 4: Ecosystem Open
 - [ ] Recipes 프레임워크 공개
 - [ ] 에디터 재작성 (깔끔한 Core API 소비)
 - [ ] 쇼케이스 3종 (가정통신문/기안문/논문)
