@@ -4,6 +4,9 @@
 
 **AI가 한컴오피스 문서(.hwp / .hwpx)를 읽고, 이해하고, 편집하는 오픈소스 플랫폼**
 
+**🏫 경기도교육청 소속 현직 초등학교 교사가 만든 실무 도구**
+*— [배움의 달인](https://www.youtube.com/@%EB%B0%B0%EC%9B%80%EC%9D%98%EB%8B%AC%EC%9D%B8-p5v) · 교육 현장의 한글 업무를 AI로 —*
+
 [![PyPI](https://img.shields.io/pypi/v/master-of-hwp.svg?style=for-the-badge&logo=pypi&logoColor=white)](https://pypi.org/project/master-of-hwp/)
 [![Studio](https://img.shields.io/pypi/v/master-of-hwp-studio.svg?label=studio&style=for-the-badge&logo=pypi&logoColor=white&color=7c3aed)](https://pypi.org/project/master-of-hwp-studio/)
 [![Python](https://img.shields.io/pypi/pyversions/master-of-hwp.svg?style=for-the-badge&logo=python&logoColor=white)](https://pypi.org/project/master-of-hwp/)
@@ -25,7 +28,13 @@
 
 <br /><br />
 
-**[English](README.en.md)** · **[CHANGELOG](CHANGELOG.md)** · **[로드맵](docs/ROADMAP.md)** · **[아키텍처](docs/ARCHITECTURE.md)** · **[기여하기](CONTRIBUTING.md)**
+**OS 지원**
+&nbsp;
+<img src="https://img.shields.io/badge/macOS-✅-000000?style=flat-square&logo=apple&logoColor=white" alt="macOS" />
+<a href="#-windows-사용자-가이드"><img src="https://img.shields.io/badge/Windows-✅_가이드_보기-0078D4?style=flat-square&logo=windows&logoColor=white" alt="Windows" /></a>
+<img src="https://img.shields.io/badge/Linux-✅-FCC624?style=flat-square&logo=linux&logoColor=black" alt="Linux" />
+
+**[English](README.en.md)** · **[CHANGELOG](CHANGELOG.md)** · **[로드맵](docs/ROADMAP.md)** · **[아키텍처](docs/ARCHITECTURE.md)** · **[기여하기](CONTRIBUTING.md)** · **[🪟 Windows 가이드](#-windows-사용자-가이드)**
 
 </div>
 
@@ -67,15 +76,8 @@ edited.path.with_suffix(".edited.hwpx").write_bytes(edited.raw_bytes)
 
 ### 🎨 일반 사용자용 — Studio (WYSIWYG GUI)
 
-**macOS / Linux:**
 ```bash
 pip install master-of-hwp-studio
-mohwp studio
-```
-
-**Windows (PowerShell):**
-```powershell
-py -m pip install master-of-hwp-studio
 mohwp studio
 ```
 
@@ -85,44 +87,7 @@ mohwp studio
 mohwp mcp-config   # OS별 Claude Desktop 설정 경로 자동 감지해 스니펫 출력
 ```
 
-#### Windows 사용 시 AI provider 3가지 경로
-
-**🔑 경로 A — API 키 (가장 쉬움)**
-```powershell
-setx ANTHROPIC_API_KEY "sk-ant-..."
-# 또는
-setx OPENAI_API_KEY "sk-..."
-# 새 터미널에서
-mohwp studio
-```
-- Claude Pro/Max 구독 따로 + API 크레딧 따로 충전 (별도 과금)
-- 설정 간단, 즉시 동작
-
-**🐧 경로 B — WSL 전체 통합**
-```powershell
-wsl --install                                 # 1회 설치 (관리자 PowerShell)
-```
-```bash
-# Ubuntu 안에서
-sudo apt install -y python3-pip nodejs npm
-npm install -g @anthropic-ai/claude-code
-pip install master-of-hwp-studio
-claude login                                   # 구독 로그인
-mohwp studio
-```
-→ Windows 브라우저에서 `localhost:<port>` 접속 (WSL2 자동 포워딩)
-- **구독 그대로 사용** (API 크레딧 불필요)
-
-**🔗 경로 C — 하이브리드 (Studio 는 Windows native, CLI 는 WSL)**
-- Windows 에서 `py -m pip install master-of-hwp-studio`
-- WSL 안에 `claude` / `codex` 만 설치
-- Studio 가 자동으로 `wsl -e claude ...` 로 호출 (v0.2.4+)
-- Windows 경로 `C:\...\file.png` → 자동으로 `/mnt/c/.../file.png` 변환
-
-#### Windows 기타 참고
-- 최초 실행 시 **Windows 방화벽 허용** 팝업 → "액세스 허용" (localhost 용)
-- Python 3.11+ 필요. Python 설치 시 "Add Python to PATH" 체크 권장
-- `mohwp` 명령어가 안 보이면 새 터미널 열거나 `py -m master_of_hwp_studio studio`
+> 💡 **Windows 사용자**: 더 자세한 설치 방법과 3가지 AI provider 경로는 [🪟 Windows 사용자 가이드](#-windows-사용자-가이드) 섹션을 참고하세요.
 
 ---
 
@@ -150,6 +115,153 @@ mohwp studio
 | **Codex CLI** | `codex exec` (ChatGPT Plus/Pro 구독) | 🥇 1순위 |
 | **OpenAI API** | `OPENAI_API_KEY` 환경변수 | 🥈 2순위 |
 | **Rule-based** | 위 어떤 것도 없을 때 폴백 | 🥉 항상 가능 |
+
+---
+
+## 🪟 Windows 사용자 가이드
+
+**한국 공공·교육·업무 현장의 대다수가 Windows 환경이라 매우 중요합니다. v0.2.4+부터 Windows 3가지 경로 모두 지원합니다.**
+
+### 📦 기본 설치 (공통)
+
+Python 3.11+ 이 필요합니다. [python.org](https://www.python.org/downloads/windows/) 에서 설치 시 **"Add Python to PATH" 체크** 필수.
+
+```powershell
+# PowerShell (일반 권한)
+py -m pip install master-of-hwp-studio
+mohwp studio
+```
+
+→ 브라우저 자동 실행 → **방화벽 팝업이 뜨면 "액세스 허용"** 클릭
+
+---
+
+### AI Provider 3가지 선택지
+
+| 경로 | 난이도 | 구독 활용 | 소요 시간 |
+|---|---|---|---|
+| **A. API 키** | ⭐ 쉬움 | ❌ API 크레딧 별도 | 10초 |
+| **B. WSL 전체 통합** | ⭐⭐⭐ 중간 | ✅ 구독 그대로 | 15분 |
+| **C. 하이브리드 (자동 브릿지)** | ⭐⭐ 쉬움 | ✅ 구독 그대로 | 5분 |
+
+---
+
+#### 🔑 경로 A — API 키 (가장 쉬움 · 추천)
+
+Anthropic Claude API 또는 OpenAI API 키만 있으면 즉시 동작:
+
+```powershell
+# Claude 쓰는 경우
+setx ANTHROPIC_API_KEY "sk-ant-..."
+
+# 또는 OpenAI 쓰는 경우
+setx OPENAI_API_KEY "sk-..."
+
+# 새 PowerShell 창 열고
+mohwp studio
+```
+
+- API 키 발급: [Anthropic Console](https://console.anthropic.com/settings/keys) · [OpenAI Platform](https://platform.openai.com/api-keys)
+- ⚠️ Claude Pro/Max 구독과 **API 크레딧은 별도 과금**
+- ✅ WSL 설치 불필요, 가장 안정적
+
+---
+
+#### 🐧 경로 B — WSL 전체 통합 (구독 그대로)
+
+이미 Claude Pro/Max 나 ChatGPT Plus 구독 중이면, WSL 안에서 **구독을 그대로** 사용:
+
+```powershell
+# 1) WSL 설치 (관리자 PowerShell, 1회만)
+wsl --install
+# → 재부팅 후 Ubuntu 터미널 자동으로 열림
+```
+
+```bash
+# 2) WSL Ubuntu 안에서 필수 패키지 설치
+sudo apt update
+sudo apt install -y python3-pip python3.11-venv nodejs npm
+
+# 3) Claude Code CLI 설치 + 구독 로그인
+npm install -g @anthropic-ai/claude-code
+claude login   # 브라우저 열리면 Claude 구독 계정으로 로그인
+
+# 4) Studio 설치 + 실행
+pip install master-of-hwp-studio
+mohwp studio
+```
+
+- Windows 브라우저에서 `http://localhost:<port>` 바로 접속 (WSL2 자동 포워딩)
+- ✅ **구독 그대로 사용** — API 크레딧 불필요
+- ❌ WSL 사용이 익숙하지 않으면 러닝 커브
+
+---
+
+#### 🔗 경로 C — 하이브리드 (v0.2.4+ 자동 브릿지 · 권장)
+
+Studio 는 **Windows native** 에서 돌고, `claude`/`codex` CLI 만 WSL 안에 설치. 자동으로 브릿지 됩니다.
+
+**Step 1 — WSL 에 CLI만 설치**
+
+```powershell
+wsl --install   # 이미 WSL 있으면 스킵
+```
+```bash
+# WSL Ubuntu 안에서 (한 번만)
+sudo apt install -y nodejs npm
+npm install -g @anthropic-ai/claude-code
+claude login
+```
+
+**Step 2 — Windows 에 Studio 설치 + 실행**
+
+```powershell
+py -m pip install master-of-hwp-studio
+mohwp studio
+```
+
+그러면 Studio 가 자동으로:
+```
+claude CLI 찾음? → Windows PATH 에 없음
+              ↓
+wsl.exe 있음? → 있음
+              ↓
+wsl -e which claude → 찾음!
+              ↓
+이후 모든 AI 호출: wsl -e claude -p "..."
+```
+
+**파일 경로도 자동 변환:**
+```
+C:\Users\moon\Desktop\photo.png
+         ↓ (자동)
+/mnt/c/Users/moon/Desktop/photo.png
+         ↓
+wsl -e codex exec -i /mnt/c/Users/moon/Desktop/photo.png ...
+```
+
+- ✅ **구독 그대로 사용**
+- ✅ Windows native 에서 편안하게 Studio 사용
+- ✅ 파일 첨부는 그냥 Windows 파일 고르면 알아서 처리
+
+---
+
+### 🔧 Windows 트러블슈팅
+
+| 문제 | 해결 |
+|---|---|
+| `mohwp` 명령어 못 찾음 | 새 PowerShell 창 열기 (환경변수 갱신) 또는 `py -m master_of_hwp_studio studio` |
+| 방화벽 팝업 | "액세스 허용" 클릭 (localhost 통신에만 필요) |
+| `setx` 로 설정한 환경변수 반영 안 됨 | 새 터미널 창에서 확인 — `setx` 는 새 프로세스부터 적용 |
+| WSL 설치 후 Ubuntu 안 보임 | `wsl -l` 로 배포판 확인, 없으면 `wsl --install -d Ubuntu` |
+| `claude login` 브라우저 안 열림 | WSL 안에서 `powershell.exe start <URL>` 로 Windows 브라우저 호출 |
+| HWP 파일 열기 느림 | 대용량 파일은 Studio 가 WASM 로드 후 5-10초 소요 |
+
+### 🧑‍🏫 교사·공무원용 설치 팁
+
+- **IT 부서 정책으로 `pip` 가 막힌 경우**: [Anaconda](https://www.anaconda.com/download) 나 [Python for Windows Store 앱](https://apps.microsoft.com/detail/9NCVDN91XZQP) 으로 우회
+- **오피스 환경에서 Python 설치 불가**: [Studio Portable 배포 요청 이슈](https://github.com/reallygood83/master-of-hwp/issues) 로 알려주세요 (roadmap 반영 예정)
+- **프록시 환경**: `pip install --proxy http://proxy.company.com:8080 master-of-hwp-studio`
 
 ---
 
@@ -225,6 +337,20 @@ mohwp studio
 - 접근성(a11y) 개선
 
 작은 기여도 환영합니다 — 문서 오탈자, 번역, 샘플 파일 모두 가치 있습니다.
+
+---
+
+## 👨‍🏫 만든 사람
+
+**[배움의 달인](https://www.youtube.com/@%EB%B0%B0%EC%9B%80%EC%9D%98%EB%8B%AC%EC%9D%B8-p5v)** — 경기도교육청 소속 **현직 초등학교 교사**
+
+교실에서 매일 가정통신문 · 공문서 · 기안문을 HWP 로 작성하면서 느낀 **"이거 AI 가 해줄 수 있을 텐데"** 라는 갈증이 이 프로젝트의 출발점입니다. 그래서 이 도구는 단순한 라이브러리가 아니라 **실제 교사·공무원의 하루를 바꾸기 위한 실무 도구**로 설계됐습니다.
+
+- 📺 **YouTube**: [@배움의달인](https://www.youtube.com/@%EB%B0%B0%EC%9B%80%EC%9D%98%EB%8B%AC%EC%9D%B8-p5v) — AI · 교육공학 · 업무 자동화 콘텐츠
+- 𝕏 **X (Twitter)**: [@reallygood83](https://x.com/reallygood83)
+- 💬 **문의/제안**: [GitHub Discussions](https://github.com/reallygood83/master-of-hwp/discussions)
+
+> 교사·공무원·행정직 분들께: 현장에서 안 되는 부분이나 "이 기능 있었으면" 하는 것 있으면 [이슈](https://github.com/reallygood83/master-of-hwp/issues) 로 남겨주세요. 같은 현장 경험으로 최대한 반영합니다.
 
 ---
 
