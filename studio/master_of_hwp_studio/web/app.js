@@ -248,52 +248,119 @@ async function runBlankGenerate(text) {
 async function applyEditToEditor(preview, { mode, isTable }) {
   const newText = preview.content || '';
 
-  // 0) 빈 노트 모드: 항상 newDocument 로 깨끗한 문서 보장.
-  //    (이전에 다른 파일을 열어본 적 있으면 WASM 에 stale cursor / paragraph
-  //     index 가 남아있어서 "char_offset 200 범위 초과 (문단 길이 0)" 같은
-  //     렌더링 에러가 발생. newDocument 가 커서를 (0,0,0) 으로 리셋한다.)
+  // 0) blank_mode: Python 에 document_id 세션이 없는 상태.
+  //    ⚠️ 그렇다고 해서 에디터를 새 문서로 덮어쓰면 안 된다.
+  //    에디터가 이미 문서를 들고 있으면 그 **현재 커서/선택 위치** 에 삽입하고,
+  //    에디터가 진짜 비어있을 때만 (getCursor 가 null) newDocument 를 호출한다.
   if (preview.blank_mode) {
+    // 에디터에 문서가 있는지 확인
+    let editorCursor = null;
+    let editorSelection = null;
     try {
-      await sendEditorRequest('newDocument');
-      state.saved = true;
-      state.selection = null;
-      state.selectedIndex = null;
-      state.structure = null;
-      state.path = '';
-      els.saveBtn.disabled = false;
-      document.getElementById('saveAsBtn').disabled = false;
-      if (!els.saveBtn.dataset.outputPath) {
-        els.saveBtn.dataset.outputPath = defaultSavePath('새 문서.hwp');
+      editorSelection = await sendEditorRequest('getSelection');
+    } catch {
+      /* ignore */
+    }
+    try {
+      editorCursor = await sendEditorRequest('getCursor');
+    } catch {
+      /* ignore */
+    }
+    const hasEditorDoc = !!(editorCursor || editorSelection?.start);
+
+    if (!hasEditorDoc) {
+      // 진짜 빈 상태 — 새 문서 생성
+      try {
+        await sendEditorRequest('newDocument');
+        state.saved = true;
+        state.selection = null;
+        state.selectedIndex = null;
+        state.structure = null;
+        state.path = '';
+        els.saveBtn.disabled = false;
+        document.getElementById('saveAsBtn').disabled = false;
+        if (!els.saveBtn.dataset.outputPath) {
+          els.saveBtn.dataset.outputPath = defaultSavePath('새 문서.hwp');
+        }
+        els.fileName.textContent = '새 문서.hwp';
+        addBubble('system', '✓ 빈 새 문서 자동 생성');
+      } catch (err) {
+        throw new Error(`새 문서 생성 실패: ${err.message || err}`);
       }
-      els.fileName.textContent = '새 문서.hwp';
-      addBubble('system', '✓ 빈 새 문서 자동 생성');
-    } catch (err) {
-      throw new Error(`새 문서 생성 실패: ${err.message || err}`);
+      // 빈 문서는 항상 (0, 0, 0) 에 삽입
+      if (isTable) {
+        return sendEditorRequest('applyEditTable', {
+          section: 0, startPara: 0, endPara: 0, startChar: 0, endChar: 0,
+          table: preview.table,
+        });
+      }
+      return sendEditorRequest('applyEdit', {
+        section: 0, startPara: 0, endPara: 0, startChar: 0, endChar: 0,
+        newText,
+      });
     }
 
-    // 빈 문서 삽입은 항상 (0, 0, 0). stale cursor 사용하지 않는다.
-    // 빈 문서엔 셀도 없으므로 아래 inCell 분기는 신경 쓸 필요 없음.
-    const target = { sectionIndex: 0, paragraphIndex: 0, charOffset: 0 };
+    // 에디터가 이미 문서 들고 있음 → 현재 위치에 삽입 (기존 내용 보존)
+    const liveStart = editorSelection?.start || editorCursor;
+    const liveEnd = editorSelection?.end || liveStart;
+    const hasLive = !!(editorSelection?.hasSelection && editorSelection?.text);
+    const inCellNow = !!(liveStart && liveStart.parentParaIndex !== undefined);
 
-    // 표 결과 → 네이티브 HWP 표 생성 경로 (셀 안/밖 동일하게 동작)
     if (isTable) {
+      // 셀 안이면 표 중첩 불가 — 셀 밖(표 바로 뒤)에 삽입
+      if (inCellNow) {
+        const afterTableBody = Number(liveStart.parentParaIndex) + 1;
+        addBubble('system', 'ℹ 기존 표 안에는 중첩 표를 못 만들어 표 바로 뒤에 삽입했습니다.');
+        return sendEditorRequest('applyEditTable', {
+          section: Number(liveStart.sectionIndex ?? 0),
+          startPara: afterTableBody,
+          endPara: afterTableBody,
+          startChar: 0,
+          endChar: 0,
+          table: preview.table,
+        });
+      }
       return sendEditorRequest('applyEditTable', {
-        section: target.sectionIndex,
-        startPara: target.paragraphIndex,
-        endPara: target.paragraphIndex,
-        startChar: target.charOffset,
-        endChar: target.charOffset,
+        section: Number(liveStart.sectionIndex ?? 0),
+        startPara: Number(liveStart.paragraphIndex ?? 0),
+        endPara: Number(liveStart.paragraphIndex ?? 0),
+        startChar: Number(liveStart.charOffset ?? 0),
+        endChar: Number(liveStart.charOffset ?? 0),
         table: preview.table,
       });
     }
 
-    // 빈 문서 본문 단순 삽입
+    // 셀 안 → inCell 분기 (cellParaIndex 전달)
+    if (inCellNow) {
+      return sendEditorRequest('applyEdit', {
+        section: Number(liveStart.sectionIndex ?? 0),
+        start: liveStart,
+        end: mode === 'replace' && hasLive ? liveEnd : liveStart,
+        startPara: Number(liveStart.paragraphIndex ?? 0),
+        endPara: Number((mode === 'replace' && hasLive ? liveEnd : liveStart).paragraphIndex ?? 0),
+        startChar: Number(liveStart.charOffset ?? 0),
+        endChar: Number((mode === 'replace' && hasLive ? liveEnd : liveStart).charOffset ?? 0),
+        newText,
+      });
+    }
+
+    // 본문 삽입/대치
+    if (mode === 'replace' && hasLive) {
+      return sendEditorRequest('applyEdit', {
+        section: Number(liveStart.sectionIndex ?? 0),
+        startPara: Number(liveStart.paragraphIndex ?? 0),
+        endPara: Number(liveEnd.paragraphIndex ?? 0),
+        startChar: Number(liveStart.charOffset ?? 0),
+        endChar: Number(liveEnd.charOffset ?? 0),
+        newText,
+      });
+    }
     return sendEditorRequest('applyEdit', {
-      section: target.sectionIndex,
-      startPara: target.paragraphIndex,
-      endPara: target.paragraphIndex,
-      startChar: target.charOffset,
-      endChar: target.charOffset,
+      section: Number(liveStart.sectionIndex ?? 0),
+      startPara: Number(liveStart.paragraphIndex ?? 0),
+      endPara: Number(liveStart.paragraphIndex ?? 0),
+      startChar: Number(liveStart.charOffset ?? 0),
+      endChar: Number(liveStart.charOffset ?? 0),
       newText,
     });
   }
