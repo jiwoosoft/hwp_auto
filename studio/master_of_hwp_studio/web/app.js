@@ -217,10 +217,19 @@ function addPreviewCard(preview) {
 async function runBlankGenerate(text) {
   const provider = currentProvider();
   const thinking = addBubble('ai', `${provider} 생각 중...`);
+
+  // 선택된 텍스트가 있으면 서버에도 전달. blank 모드라 Python 세션은 없지만
+  // 에디터의 선택은 여전히 유효하므로 AI 가 그 내용을 기반으로 생성한다.
+  const selectedText =
+    state.selection?.hasSelection && state.selection?.text
+      ? String(state.selection.text).trim()
+      : '';
+
   const res = await api('/api/ai/preview', {
     provider,
     instruction: text,
     task_type: 'insert',
+    original: selectedText,
     attachments: state.attachments || [],
   });
   thinking.remove();

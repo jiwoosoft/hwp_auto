@@ -411,6 +411,22 @@ window.addEventListener('message', async (e) => {
         // Used by the Studio web client's blank-note workflow.
         try {
           const docInfo = wasm.createNewDocument();
+          // 🔑 Reset inputHandler's cursor BEFORE initializeDocument() emits
+          // selection-changed — otherwise the stale cursor (e.g. char_offset
+          // 159 from a previously loaded file) is rendered against the new
+          // blank doc (paragraph length 0) and throws a range error.
+          try {
+            const cursorAny = (inputHandler as any)?.cursor;
+            if (cursorAny) {
+              if (typeof cursorAny.clearSelection === 'function') cursorAny.clearSelection();
+              if (typeof cursorAny.moveTo === 'function') {
+                cursorAny.moveTo({ sectionIndex: 0, paragraphIndex: 0, charOffset: 0 });
+              }
+              if (typeof cursorAny.resetPreferredX === 'function') cursorAny.resetPreferredX();
+            }
+          } catch (resetErr) {
+            console.warn('[newDocument] cursor reset failed (non-fatal):', resetErr);
+          }
           await initializeDocument(docInfo, `새 문서 — ${docInfo.pageCount}페이지`);
           reply({ pageCount: docInfo.pageCount });
         } catch (err: any) {

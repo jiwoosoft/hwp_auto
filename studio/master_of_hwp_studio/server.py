@@ -382,8 +382,15 @@ def _handle_ai_preview(body: dict[str, Any]) -> dict[str, Any]:
         if found is None:
             return {"ok": False, "message": f"paragraph_index {paragraph_index} out of range"}
         target_text = found
-    elif not instruction:
-        return {"ok": False, "message": "instruction is required when no paragraph is targeted"}
+    else:
+        # No Python session / no paragraph target: still accept an `original`
+        # text from the client (e.g. editor's drag-selection). This keeps table
+        # generation grounded in the user's actual content even in blank-mode.
+        if not instruction:
+            return {"ok": False, "message": "instruction is required when no paragraph is targeted"}
+        supplied_original = body.get("original")
+        if isinstance(supplied_original, str):
+            target_text = supplied_original.strip()
 
     # If the instruction asks for a table, try structured table generation first
     # so the client can insert a native HWP table (not markdown pipes).
