@@ -752,12 +752,19 @@ async function handleChat(text) {
     await runBlankGenerate(text);
     return;
   }
-  if (!state.documentId && intent.type === 'save') {
-    addBubble('ai', '먼저 편집한 내용이 있어야 저장할 수 있습니다.');
+  if (intent.type === 'save') {
+    if (!state.documentId && !state.editorReady) {
+      addBubble('ai', '먼저 편집한 내용이 있어야 저장할 수 있습니다.');
+      return;
+    }
+    await saveDocument();
     return;
   }
-  if (intent.type === 'save') {
-    await saveDocument();
+  // Python-tracked document_id가 없으면 (빈 새 문서 상태 등) parseIntent 가
+  // ai_rewrite 를 뱉었더라도 반드시 blank-generate 경로로 보내야 한다.
+  // 그러지 않으면 서버가 "Unknown document_id" 로 실패.
+  if (!state.documentId) {
+    await runBlankGenerate(text);
     return;
   }
 
@@ -924,6 +931,45 @@ function handleFilePickedForAttachment(path) {
 }
 
 document.getElementById('attachBtn')?.addEventListener('click', pickAttachment);
+
+// ---- Paste-to-attach: clipboard image → temp file → attachment chip -------
+function blobToBase64(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const dataUrl = String(reader.result || '');
+      const comma = dataUrl.indexOf(',');
+      resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+els.chatText?.addEventListener('paste', async (e) => {
+  const items = Array.from(e.clipboardData?.items || []);
+  const imageItems = items.filter((it) => it.kind === 'file' && it.type.startsWith('image/'));
+  if (!imageItems.length) return; // 일반 텍스트 붙여넣기는 그대로 처리
+  e.preventDefault();
+
+  for (const item of imageItems) {
+    const blob = item.getAsFile();
+    if (!blob) continue;
+    try {
+      const base64 = await blobToBase64(blob);
+      const res = await api('/api/upload-image', { base64, mime: blob.type });
+      if (res?.ok) {
+        state.attachments.push(res.data.path);
+        renderAttachmentChips();
+        addBubble('system', `📎 붙여넣은 이미지 첨부됨 (${Math.round(res.data.size / 1024)} KB)`);
+      } else {
+        addBubble('error', `이미지 업로드 실패: ${res?.message || ''}`);
+      }
+    } catch (err) {
+      addBubble('error', `이미지 처리 실패: ${err.message || err}`);
+    }
+  }
+});
 
 async function createNewDocument() {
   if (!state.editorReady) {

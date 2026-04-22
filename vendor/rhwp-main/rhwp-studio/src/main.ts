@@ -406,6 +406,18 @@ window.addEventListener('message', async (e) => {
         reply({ pageCount: docInfo.pageCount });
         break;
       }
+      case 'newDocument': {
+        // Create a blank "새 문서" so applyEdit has something to write into.
+        // Used by the Studio web client's blank-note workflow.
+        try {
+          const docInfo = wasm.createNewDocument();
+          await initializeDocument(docInfo, `새 문서 — ${docInfo.pageCount}페이지`);
+          reply({ pageCount: docInfo.pageCount });
+        } catch (err: any) {
+          reply(undefined, err?.message ?? String(err));
+        }
+        break;
+      }
       case 'pageCount':
         reply(wasm.pageCount);
         break;
@@ -415,9 +427,49 @@ window.addEventListener('message', async (e) => {
       case 'ready':
         reply(true);
         break;
+      case 'exportBytes': {
+        // Return current edited document as base64 (postMessage doesn't
+        // cleanly serialize Uint8Array across iframe boundaries).
+        try {
+          const bytes = wasm.exportHwp();
+          // btoa doesn't handle Uint8Array directly; use binary-string trick.
+          let binary = '';
+          for (let i = 0; i < bytes.length; i += 1) {
+            binary += String.fromCharCode(bytes[i]);
+          }
+          reply({ base64: btoa(binary), size: bytes.length });
+        } catch (err: any) {
+          reply(undefined, err?.message ?? String(err));
+        }
+        break;
+      }
       case 'getSelection':
         reply(getSelectionPayload());
         break;
+      case 'getCursor': {
+        // 선택 영역이 없을 때도 **현재 커서 위치**를 반환 (셀 컨텍스트 포함).
+        // Studio 클라이언트의 삽입 로직에서 사용.
+        if (!inputHandler) { reply(undefined, 'inputHandler not ready'); break; }
+        try {
+          const cursorAny = (inputHandler as any).cursor;
+          const pos = typeof cursorAny?.getPosition === 'function'
+            ? cursorAny.getPosition()
+            : null;
+          if (!pos) { reply(null); break; }
+          reply({
+            sectionIndex: pos.sectionIndex,
+            paragraphIndex: pos.paragraphIndex,
+            charOffset: pos.charOffset,
+            parentParaIndex: pos.parentParaIndex,
+            controlIndex: pos.controlIndex,
+            cellIndex: pos.cellIndex,
+            cellParaIndex: pos.cellParaIndex,
+          });
+        } catch (err: any) {
+          reply(undefined, err?.message ?? String(err));
+        }
+        break;
+      }
       case 'setSelection': {
         if (!inputHandler) {
           reply(undefined, 'inputHandler not ready');
@@ -487,7 +539,32 @@ window.addEventListener('message', async (e) => {
                 if (sCellPara === eCellPara) {
                   const count = Math.max(0, eOff - sOff);
                   if (count > 0) w.deleteTextInCell(sec, ppi, ci, cellIdx, sCellPara, sOff, count);
-                  if (newText) w.insertTextInCell(sec, ppi, ci, cellIdx, sCellPara, sOff, newText);
+                  // 여러 줄 텍스트(\n 포함)는 line 별로 insert + splitParagraphInCell 으로
+                  // 문단을 나눠서 셀 구조를 보존한 채 삽입한다. insertTextInCell 혼자 로는
+                  // \n 을 올바르게 처리하지 못해 셀이 깨짐.
+                  if (newText) {
+                    const lines = newText.split(/\r\n|\r|\n/);
+                    let curPara = sCellPara;
+                    let curOff = sOff;
+                    for (let idx = 0; idx < lines.length; idx++) {
+                      const line = lines[idx];
+                      if (line) {
+                        w.insertTextInCell(sec, ppi, ci, cellIdx, curPara, curOff, line);
+                        curOff += line.length;
+                      }
+                      if (idx < lines.length - 1) {
+                        // 문단 분할 → 다음 line은 새 문단의 시작에 들어감
+                        w.splitParagraphInCell(sec, ppi, ci, cellIdx, curPara, curOff);
+                        curPara += 1;
+                        curOff = 0;
+                      }
+                    }
+                    result = { ok: true, inCell: true, lines: lines.length };
+                    return {
+                      sectionIndex: sec, paragraphIndex: ppi, charOffset: curOff,
+                      parentParaIndex: ppi, controlIndex: ci, cellIndex: cellIdx, cellParaIndex: curPara,
+                    };
+                  }
                   result = { ok: true, inCell: true };
                   return {
                     sectionIndex: sec, paragraphIndex: ppi, charOffset: sOff + newText.length,

@@ -876,7 +876,7 @@ export class InputHandler {
   ): boolean {
     try {
       const bbox = this.wasm.getTableBBox(sec, ppi, ci);
-      const tolerance = 8; // 페이지 좌표 기준 px (5→8: 표 객체 선택 히트박스 확장)
+      const tolerance = 16; // 페이지 좌표 기준 px (8→16: 표 경계 클릭 더 관대하게)
       const nearLeft = Math.abs(pageX - bbox.x) <= tolerance;
       const nearRight = Math.abs(pageX - (bbox.x + bbox.width)) <= tolerance;
       const nearTop = Math.abs(pageY - bbox.y) <= tolerance;

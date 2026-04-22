@@ -745,6 +745,44 @@ def _content_type_for(filename: str) -> str:
     return "application/octet-stream"
 
 
+def _handle_upload_image(body: dict[str, Any]) -> dict[str, Any]:
+    """Save a clipboard-pasted image as a temp file and return its path.
+
+    The client sends base64-encoded bytes + mime type after detecting a
+    paste event on the chat textarea. The saved path is added to the
+    attachment list and eventually forwarded to CLI providers (Claude
+    Code CLI's @path / Codex CLI's -i).
+    """
+    import datetime as _dt
+
+    raw = body.get("base64")
+    mime = str(body.get("mime", "image/png")).lower()
+    if not isinstance(raw, str) or not raw:
+        return {"ok": False, "message": "base64 is required"}
+    try:
+        data = base64.b64decode(raw, validate=True)
+    except (ValueError, binascii.Error) as exc:
+        return {"ok": False, "message": f"Invalid base64: {exc}"}
+
+    suffix = ".png"
+    if "jpeg" in mime or "jpg" in mime:
+        suffix = ".jpg"
+    elif "gif" in mime:
+        suffix = ".gif"
+    elif "webp" in mime:
+        suffix = ".webp"
+    elif "bmp" in mime:
+        suffix = ".bmp"
+
+    paste_dir = Path.home() / ".mohwp" / "pastes"
+    paste_dir.mkdir(parents=True, exist_ok=True)
+    stamp = _dt.datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"paste_{stamp}_{uuid.uuid4().hex[:8]}{suffix}"
+    dest = paste_dir / filename
+    dest.write_bytes(data)
+    return {"ok": True, "data": {"path": str(dest), "size": len(data), "mime": mime}}
+
+
 def _handle_default_save_dir(body: dict[str, Any]) -> dict[str, Any]:
     """Return the user's Downloads folder (or home if absent). Cross-platform."""
     del body
@@ -891,6 +929,7 @@ _POST_ROUTES: dict[str, Any] = {
     "/api/templates/save": _handle_templates_save,
     "/api/templates/delete": _handle_templates_delete,
     "/api/default-save-dir": _handle_default_save_dir,
+    "/api/upload-image": _handle_upload_image,
 }
 
 
