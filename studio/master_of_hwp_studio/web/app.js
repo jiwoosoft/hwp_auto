@@ -239,54 +239,32 @@ async function runBlankGenerate(text) {
 async function applyEditToEditor(preview, { mode, isTable }) {
   const newText = preview.content || '';
 
-  // 0) 빈 노트 모드: 문서 컨텍스트 없이 에디터 현재 위치에 삽입.
-  //    에디터가 파일을 열지 않은 상태라면 먼저 빈 새 문서를 생성해서
-  //    applyEdit 이 작동할 기반을 만든다.
+  // 0) 빈 노트 모드: 항상 newDocument 로 깨끗한 문서 보장.
+  //    (이전에 다른 파일을 열어본 적 있으면 WASM 에 stale cursor / paragraph
+  //     index 가 남아있어서 "char_offset 200 범위 초과 (문단 길이 0)" 같은
+  //     렌더링 에러가 발생. newDocument 가 커서를 (0,0,0) 으로 리셋한다.)
   if (preview.blank_mode) {
-    // 에디터가 아무 문서도 안 들고 있으면 자동으로 새 문서 생성.
-    if (!state.path && !state.structure) {
-      try {
-        await sendEditorRequest('newDocument');
-        state.saved = true;
-        state.selection = null;         // 이전 문서의 선택은 버림 (stale 인덱스 방지)
-        state.selectedIndex = null;
-        els.saveBtn.disabled = false;
+    try {
+      await sendEditorRequest('newDocument');
+      state.saved = true;
+      state.selection = null;
+      state.selectedIndex = null;
+      state.structure = null;
+      state.path = '';
+      els.saveBtn.disabled = false;
       document.getElementById('saveAsBtn').disabled = false;
-        if (!els.saveBtn.dataset.outputPath) {
-          els.saveBtn.dataset.outputPath = defaultSavePath('새 문서.hwp');
-        }
-        els.fileName.textContent = '새 문서.hwp';
-        addBubble('system', '✓ 빈 새 문서 자동 생성');
-      } catch (err) {
-        throw new Error(`새 문서 생성 실패: ${err.message || err}`);
+      if (!els.saveBtn.dataset.outputPath) {
+        els.saveBtn.dataset.outputPath = defaultSavePath('새 문서.hwp');
       }
+      els.fileName.textContent = '새 문서.hwp';
+      addBubble('system', '✓ 빈 새 문서 자동 생성');
+    } catch (err) {
+      throw new Error(`새 문서 생성 실패: ${err.message || err}`);
     }
 
-    // 에디터의 현재 커서 위치를 실시간으로 조회. 셀 안이면 parentParaIndex,
-    // controlIndex, cellIndex, cellParaIndex 같은 셀 컨텍스트를 **반드시**
-    // 그대로 넘겨야 에디터가 본문이 아니라 해당 셀 안에 텍스트를 넣는다.
-    // getSelection 은 선택이 없을 때 start 를 반환 안 하므로, getCursor 로 보강.
-    let liveStart = null;
-    try {
-      const live = await sendEditorRequest('getSelection');
-      liveStart = live?.start || null;
-    } catch {
-      /* ignore */
-    }
-    if (!liveStart) {
-      try {
-        liveStart = await sendEditorRequest('getCursor');
-      } catch {
-        /* ignore */
-      }
-    }
-    const target = liveStart
-      ? {
-          sectionIndex: Number(liveStart.sectionIndex ?? 0),
-          paragraphIndex: Number(liveStart.paragraphIndex ?? 0),
-          charOffset: Number(liveStart.charOffset ?? 0),
-        }
-      : { sectionIndex: 0, paragraphIndex: 0, charOffset: 0 };
+    // 빈 문서 삽입은 항상 (0, 0, 0). stale cursor 사용하지 않는다.
+    // 빈 문서엔 셀도 없으므로 아래 inCell 분기는 신경 쓸 필요 없음.
+    const target = { sectionIndex: 0, paragraphIndex: 0, charOffset: 0 };
 
     // 표 결과 → 네이티브 HWP 표 생성 경로 (셀 안/밖 동일하게 동작)
     if (isTable) {
@@ -300,31 +278,7 @@ async function applyEditToEditor(preview, { mode, isTable }) {
       });
     }
 
-    // 셀 안이면 start/end 객체를 통째로 전달 → main.ts 의 inCell 분기 사용.
-    // 에디터가 내부적으로 \n 를 splitParagraphInCell 로 처리하므로 여러 문단도 OK.
-    if (liveStart && liveStart.parentParaIndex !== undefined) {
-      const cellEnd = {
-        sectionIndex: liveStart.sectionIndex,
-        paragraphIndex: liveStart.paragraphIndex,
-        charOffset: liveStart.charOffset,
-        parentParaIndex: liveStart.parentParaIndex,
-        controlIndex: liveStart.controlIndex,
-        cellIndex: liveStart.cellIndex,
-        cellParaIndex: liveStart.cellParaIndex ?? liveStart.paragraphIndex,
-      };
-      return sendEditorRequest('applyEdit', {
-        section: target.sectionIndex,
-        start: liveStart,
-        end: cellEnd,
-        startPara: target.paragraphIndex,
-        endPara: target.paragraphIndex,
-        startChar: target.charOffset,
-        endChar: target.charOffset,
-        newText,
-      });
-    }
-
-    // 본문 영역: 단순 삽입
+    // 빈 문서 본문 단순 삽입
     return sendEditorRequest('applyEdit', {
       section: target.sectionIndex,
       startPara: target.paragraphIndex,

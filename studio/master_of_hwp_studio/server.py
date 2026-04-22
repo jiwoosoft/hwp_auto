@@ -388,7 +388,11 @@ def _handle_ai_preview(body: dict[str, Any]) -> dict[str, Any]:
     # If the instruction asks for a table, try structured table generation first
     # so the client can insert a native HWP table (not markdown pipes).
     if _looks_like_table_request(instruction):
-        table = _generate_table_content(provider_key=provider_key, instruction=instruction)
+        table = _generate_table_content(
+            provider_key=provider_key,
+            instruction=instruction,
+            original=target_text,
+        )
         if table is not None:
             return {
                 "ok": True,
@@ -439,7 +443,11 @@ def _handle_ai_preview_selection(body: dict[str, Any]) -> dict[str, Any]:
         return {"ok": False, "message": "selection.text is required"}
 
     if _looks_like_table_request(instruction):
-        table = _generate_table_content(provider_key=provider_key, instruction=instruction)
+        table = _generate_table_content(
+            provider_key=provider_key,
+            instruction=instruction,
+            original=selected_text,
+        )
         if table is not None:
             return {
                 "ok": True,
@@ -606,11 +614,13 @@ def _generate_table_content(
     *,
     provider_key: str,
     instruction: str,
+    original: str = "",
 ) -> dict[str, Any] | None:
-    """Ask the LLM for a 2D cell array and return {cells: [[...]]}.
+    """Ask the LLM for a 2D cell array and return {rows, cols, cells}.
 
-    Returns None if LLM unavailable or response can't be parsed. Caller
-    should fall back to plain-text generation.
+    `original` is the user's selected text (if any) — included in the
+    prompt so the LLM reorganizes THAT content into a table instead of
+    inventing a generic placeholder (e.g. a multiplication-table header).
     """
     provider = _build_provider(provider_key)
     if provider is None:
@@ -621,11 +631,14 @@ def _generate_table_content(
         'Return a JSON object of the form {"cells": [[...]]} where cells is '
         "a 2D array of strings. Row 0 is the header row. Do NOT wrap numbers "
         "in quotes unless they are labels. Preserve Korean content. "
+        "If the user supplies '원문' text, reorganize THAT content into the "
+        "table — never invent generic placeholder rows. "
         "Return ONLY JSON, no prose, no markdown."
     )
+    source_block = f"원문 (이 내용을 표로 재구성):\n{original}\n\n" if original else ""
     user_prompt = (
-        f"지시: {instruction}\n\n"
-        '응답 예시: {"cells": [["번호","문제","정답"],["1","3 × 7","21"]]}'
+        f"{source_block}지시: {instruction}\n\n"
+        '응답 예시 포맷: {"cells": [["헤더1","헤더2"],["값1","값2"]]}'
     )
     try:
         payload = provider.complete_json(system_prompt, user_prompt, schema={}, max_tokens=2000)
