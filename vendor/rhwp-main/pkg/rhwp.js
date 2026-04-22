@@ -631,6 +631,38 @@ export class HwpDocument {
         }
     }
     /**
+     * 표 셀 내부에 중첩 표를 삽입한다.
+     *
+     * 반환: JSON `{"ok":true,"cellParaIdx":<N>,"controlIdx":0}`
+     * @param {number} section_idx
+     * @param {number} parent_para_idx
+     * @param {number} control_idx
+     * @param {number} cell_idx
+     * @param {number} cell_para_idx
+     * @param {number} char_offset
+     * @param {number} row_count
+     * @param {number} col_count
+     * @returns {string}
+     */
+    createTableInCell(section_idx, parent_para_idx, control_idx, cell_idx, cell_para_idx, char_offset, row_count, col_count) {
+        let deferred2_0;
+        let deferred2_1;
+        try {
+            const ret = wasm.hwpdocument_createTableInCell(this.__wbg_ptr, section_idx, parent_para_idx, control_idx, cell_idx, cell_para_idx, char_offset, row_count, col_count);
+            var ptr1 = ret[0];
+            var len1 = ret[1];
+            if (ret[3]) {
+                ptr1 = 0; len1 = 0;
+                throw takeFromExternrefTable0(ret[2]);
+            }
+            deferred2_0 = ptr1;
+            deferred2_1 = len1;
+            return getStringFromWasm0(ptr1, len1);
+        } finally {
+            wasm.__wbindgen_free(deferred2_0, deferred2_1, 1);
+        }
+    }
+    /**
      * 책갈피 삭제
      * @param {number} sec
      * @param {number} para

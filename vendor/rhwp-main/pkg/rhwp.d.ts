@@ -137,6 +137,12 @@ export class HwpDocument {
      */
     createTableEx(options_json: string): string;
     /**
+     * 표 셀 내부에 중첩 표를 삽입한다.
+     *
+     * 반환: JSON `{"ok":true,"cellParaIdx":<N>,"controlIdx":0}`
+     */
+    createTableInCell(section_idx: number, parent_para_idx: number, control_idx: number, cell_idx: number, cell_para_idx: number, char_offset: number, row_count: number, col_count: number): string;
+    /**
      * 책갈피 삭제
      */
     deleteBookmark(sec: number, para: number, ctrl_idx: number): string;
@@ -1338,6 +1344,7 @@ export interface InitOutput {
     readonly hwpdocument_createStyle: (a: number, b: number, c: number) => number;
     readonly hwpdocument_createTable: (a: number, b: number, c: number, d: number, e: number, f: number) => [number, number, number, number];
     readonly hwpdocument_createTableEx: (a: number, b: number, c: number) => [number, number, number, number];
+    readonly hwpdocument_createTableInCell: (a: number, b: number, c: number, d: number, e: number, f: number, g: number, h: number, i: number) => [number, number, number, number];
     readonly hwpdocument_deleteBookmark: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly hwpdocument_deleteHeaderFooter: (a: number, b: number, c: number, d: number) => [number, number, number, number];
     readonly hwpdocument_deletePictureControl: (a: number, b: number, c: number, d: number) => [number, number, number, number];

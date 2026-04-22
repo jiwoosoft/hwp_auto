@@ -86,6 +86,8 @@ export interface CursorRect {
   x: number;
   y: number;
   height: number;
+  /** 일부 셀 내부 호출은 글자 폭도 반환 */
+  width?: number;
 }
 
 /** WASM hitTest() 반환 타입 */

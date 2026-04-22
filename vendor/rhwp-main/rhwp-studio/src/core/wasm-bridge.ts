@@ -465,6 +465,20 @@ export class WasmBridge {
     return JSON.parse(this.doc.createTable(sec, para, charOffset, rows, cols));
   }
 
+  createTableInCell(
+    sec: number,
+    parentPara: number,
+    controlIdx: number,
+    cellIdx: number,
+    cellParaIdx: number,
+    charOffset: number,
+    rows: number,
+    cols: number,
+  ): { ok: boolean; cellParaIdx: number; controlIdx: number } {
+    if (!this.doc) throw new Error('문서가 로드되지 않았습니다');
+    return JSON.parse(this.doc.createTableInCell(sec, parentPara, controlIdx, cellIdx, cellParaIdx, charOffset, rows, cols));
+  }
+
   evaluateTableFormula(sec: number, parentPara: number, controlIdx: number,
     targetRow: number, targetCol: number, formula: string, writeResult: boolean): string {
     if (!this.doc) throw new Error('문서가 로드되지 않았습니다');

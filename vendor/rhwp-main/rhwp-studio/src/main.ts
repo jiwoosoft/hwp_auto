@@ -142,8 +142,8 @@ async function initialize(): Promise<void> {
     inputHandler.setDispatcher(dispatcher);
     inputHandler.setContextMenu(new ContextMenu(dispatcher, registry));
     inputHandler.setCommandPalette(new CommandPalette(registry, dispatcher));
-    inputHandler.setCellSelectionRenderer(new CellSelectionRenderer(container, canvasView.getViewportManager()));
-    inputHandler.setTableObjectRenderer(new TableObjectRenderer(container, canvasView.getViewportManager()));
+    inputHandler.setCellSelectionRenderer(new CellSelectionRenderer(container, canvasView.getVirtualScroll()));
+    inputHandler.setTableObjectRenderer(new TableObjectRenderer(container, canvasView.getVirtualScroll()));
     inputHandler.setTableResizeRenderer(new TableResizeRenderer(container, canvasView.getVirtualScroll()));
     inputHandler.setPictureObjectRenderer(null as any);
 
@@ -668,6 +668,13 @@ window.addEventListener('message', async (e) => {
           break;
         }
 
+        // 중첩 표 (셀 내부) 컨텍스트 감지
+        const cellCtx = (params as any).cell;
+        const isNested = !!(cellCtx
+          && Number.isFinite(Number(cellCtx.parentParaIndex))
+          && Number.isFinite(Number(cellCtx.controlIndex))
+          && Number.isFinite(Number(cellCtx.cellIndex)));
+
         let result: any = null;
         let resultError: string | null = null;
         try {
@@ -676,6 +683,72 @@ window.addEventListener('message', async (e) => {
             kind: 'snapshot',
             operationType: 'aiEditTable',
             operation: (w) => {
+              // 셀 내부 중첩 표 분기 ─ 기존 표 안에 하위 표 삽입
+              if (isNested) {
+                const parentPara = Number(cellCtx.parentParaIndex);
+                const controlIdx = Number(cellCtx.controlIndex);
+                const cellIdx = Number(cellCtx.cellIndex);
+                const cellParaIdx = Number(cellCtx.cellParaIndex ?? 0);
+                const cellCharOffset = Number(cellCtx.charOffset ?? 0);
+                const createdInCell = w.createTableInCell(
+                  sec, parentPara, controlIdx, cellIdx, cellParaIdx,
+                  cellCharOffset, rows, cols,
+                );
+                if (!createdInCell?.ok) {
+                  resultError = 'createTableInCell failed';
+                  return {
+                    sectionIndex: sec,
+                    paragraphIndex: parentPara,
+                    parentParaIndex: parentPara,
+                    controlIndex: controlIdx,
+                    cellIndex: cellIdx,
+                    cellParaIndex: cellParaIdx,
+                    charOffset: 0,
+                  };
+                }
+                const newCellPara = createdInCell.cellParaIdx;
+
+                // 셀 내부 신규 표의 셀에 텍스트 채우기
+                for (let r = 0; r < rows; r++) {
+                  const row = cells[r];
+                  if (!Array.isArray(row)) continue;
+                  for (let c = 0; c < cols; c++) {
+                    const raw = row[c];
+                    const txt = raw === null || raw === undefined ? '' : String(raw);
+                    if (!txt) continue;
+                    const innerCellIdx = r * cols + c;
+                    try {
+                      // 새 표의 각 셀은 parent=원래 셀의 문단(newCellPara), control=0, cell=innerCellIdx 로 접근
+                      // 하지만 create_table_in_cell 이 만든 표는 중첩 셀 계층이므로
+                      // 하위 셀 편집은 별도 API가 필요 → 일단 스킵 (TODO: insertTextInNestedCell)
+                      void innerCellIdx; void txt;
+                    } catch (cellErr) {
+                      console.warn('[applyEditTable] nested cell text skip', r, c, cellErr);
+                    }
+                  }
+                }
+
+                result = {
+                  ok: true,
+                  parentParaIndex: parentPara,
+                  controlIndex: controlIdx,
+                  cellIndex: cellIdx,
+                  cellParaIndex: newCellPara,
+                  nested: true,
+                  rows,
+                  cols,
+                };
+                return {
+                  sectionIndex: sec,
+                  paragraphIndex: parentPara,
+                  parentParaIndex: parentPara,
+                  controlIndex: controlIdx,
+                  cellIndex: cellIdx,
+                  cellParaIndex: newCellPara,
+                  charOffset: 0,
+                };
+              }
+
               // 1) 기존 선택 영역이 있으면 삭제해서 표를 그 자리에 끼워 넣는다.
               let insertPara = startPara;
               let insertChar = startChar;

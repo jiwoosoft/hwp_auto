@@ -327,17 +327,20 @@ async function applyEditToEditor(preview, { mode, isTable }) {
     const inCellNow = !!(liveStart && liveStart.parentParaIndex !== undefined);
 
     if (isTable) {
-      // 셀 안이면 표 중첩 불가 — 셀 밖(표 바로 뒤)에 삽입
+      // 셀 안이면 중첩 표 API 호출 (현재: 골격만 생성, 내용 채우기는 후속 작업)
       if (inCellNow) {
-        const afterTableBody = Number(liveStart.parentParaIndex) + 1;
-        addBubble('system', 'ℹ 기존 표 안에는 중첩 표를 못 만들어 표 바로 뒤에 삽입했습니다.');
+        addBubble('system', 'ℹ 셀 안에 중첩 표를 만들었습니다. 칸 내용은 직접 입력해 주세요.');
         return sendEditorRequest('applyEditTable', {
           section: Number(liveStart.sectionIndex ?? 0),
-          startPara: afterTableBody,
-          endPara: afterTableBody,
-          startChar: 0,
-          endChar: 0,
+          startPara: 0, endPara: 0, startChar: 0, endChar: 0,
           table: preview.table,
+          cell: {
+            parentParaIndex: Number(liveStart.parentParaIndex),
+            controlIndex: Number(liveStart.controlIndex ?? 0),
+            cellIndex: Number(liveStart.cellIndex ?? 0),
+            cellParaIndex: Number(liveStart.cellParaIndex ?? 0),
+            charOffset: Number(liveStart.charOffset ?? 0),
+          },
         });
       }
       return sendEditorRequest('applyEditTable', {
@@ -412,19 +415,21 @@ async function applyEditToEditor(preview, { mode, isTable }) {
   const inCell = !!(liveStart && liveStart.parentParaIndex !== undefined);
   const isMultiParagraph = /\r|\n/.test(newText);
 
-  // 테이블 결과: rhwp 의 createTable 은 본문 레벨만 지원 → 중첩 표 생성 불가.
-  // 커서가 기존 표 셀 안이면, 기존 표 바로 뒤(본문)에 새 표를 삽입한다.
+  // 테이블 결과: 본문(createTable) vs 셀 내부(createTableInCell) 분기.
   if (isTable) {
     if (inCell && liveStart) {
-      const afterTableBody = Number(liveStart.parentParaIndex) + 1;
-      addBubble('system', 'ℹ 표 안에는 중첩 표를 못 만들어 기존 표 바로 뒤에 삽입했습니다.');
+      addBubble('system', 'ℹ 셀 안에 중첩 표를 만들었습니다. 칸 내용은 직접 입력해 주세요.');
       return sendEditorRequest('applyEditTable', {
         section: Number(liveStart.sectionIndex ?? 0),
-        startPara: afterTableBody,
-        endPara: afterTableBody,
-        startChar: 0,
-        endChar: 0,
+        startPara: 0, endPara: 0, startChar: 0, endChar: 0,
         table: preview.table,
+        cell: {
+          parentParaIndex: Number(liveStart.parentParaIndex),
+          controlIndex: Number(liveStart.controlIndex ?? 0),
+          cellIndex: Number(liveStart.cellIndex ?? 0),
+          cellParaIndex: Number(liveStart.cellParaIndex ?? 0),
+          charOffset: Number(liveStart.charOffset ?? 0),
+        },
       });
     }
     const start = liveStart || { sectionIndex: 0, paragraphIndex: 0, charOffset: 0 };
