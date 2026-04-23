@@ -5,40 +5,60 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## master-of-hwp-studio [0.8.2] - 2026-04-23
+## master-of-hwp-studio [0.8.3] - 2026-04-23
 
-### Fixed
+### Changed (documentation correction only)
 
-- **Nested-table content loss (CRITICAL data-safety fix)**: 0.8.0/0.8.1 "table inside a cell"
-  (`createTableInCell` + `insertTextInNestedCell`) triggered an `export_hwp` serialization bug
-  that dropped ~76% of the outer document's body content on save. Verified against a teacher
-  template (`가정통신_20260421233205.hwp`): 587 characters → 142 characters after round-trip.
-- Root cause is in rhwp's Rust HWP5 serializer (`src/serializer/body_text.rs` /
-  `src/serializer/control.rs`), not in this project. While the insert operations succeed
-  at the IR level (verified with `insert_text_in_nested_cell_native` returning `ok:true`
-  for every cell and `export_hwp_verify recovered:true`), the on-disk bytes lose
-  outer-cell sibling paragraphs.
-- Interim safety patch: `studio/master_of_hwp_studio/web/app.js` now intercepts any
-  "insert table inside cell" request and routes it to a **body-level insertion** just
-  below the outer table. The user sees a one-line notice: `⚠ 셀 안에 표를 넣으면 저장 시 본문이
-  대량 손실되는 문제가 있어, 외부 표 바로 아래에 삽입합니다.`
-- HWPX export was also evaluated as a workaround but produces files Hancom Office flags as
-  corrupted (empty `<hs:sec>` — zero tables and zero `<hp:t>` fragments), so it is not used.
+- Corrects the 0.8.2 changelog. The workaround in 0.8.2 is still the right thing
+  to ship, but the **diagnosis** in the 0.8.2 entry was wrong.
+- The real symptom is **layout escape**, not content loss. After a Rust-level
+  round-trip test, all 16 original body paragraphs, the pre-existing 18x2 schedule
+  table, and the new 2x2 nested table are all present in the re-parsed bytes.
+  What the user saw in Hancom Office ("표 따로 한 장, 텍스트 따로 한 장") is the
+  layout engine rendering the new nested table outside its cell, shifting everything
+  to separate pages. `master_of_hwp`'s Python `section_texts` accessor happens to
+  skip content that sits on a paragraph whose table control has drifted, which is
+  what made the 587 → 142 character drop *look* like deletion.
+- Flag-level evidence from the nested-table regression test: after export and
+  re-parse, our new 2×2 nested table has the same `attr = 0x002A0310` (bit 13 /
+  `restrictInPage` = 0) as the original 18×2 schedule table inside the same cell.
+  The outer-cell layout issue therefore is **not** caused by a missing
+  `restrictInPage` flag — this ruled out the first hypothesis (see
+  `docs/upstream-rhwp-issue.md`). A pre-existing `TYPESET_VERIFY: sec0 페이지 수
+  차이 (paginator=2, typeset=1)` also shows up on the untouched original file,
+  suggesting the discrepancy is in rhwp's layout engine rather than the save path.
+
+### Kept from 0.8.2
+
+- Safety workaround in `studio/master_of_hwp_studio/web/app.js` that intercepts
+  "insert table inside cell" requests and routes them to a body-level insertion
+  below the outer table. This still prevents the Hancom layout split, so it
+  remains the correct user-facing behavior until the upstream rhwp fix lands.
+- `patches/rhwp-nested-tables/` recovery set (create/insert Rust edits + WASM
+  bindings) retained for the future re-enable.
 
 ### Added
 
-- `patches/rhwp-nested-tables/` — 4 recovered Rust edits (`create_table_in_cell_native`,
-  `insert_text_in_nested_cell_native`, and their WASM bindings) extracted from prior Claude
-  Code session transcripts after the original `/tmp/rhwp/` build workspace was lost. Kept
-  for the future upstream PR against edwardkim/rhwp and for local re-application when the
-  serializer bug is fixed.
+- `docs/upstream-rhwp-issue.md` — ready-to-file issue template for
+  https://github.com/edwardkim/rhwp that captures the real bug (layout escape,
+  not serialization loss), the test evidence, and the patches that introduced
+  the nested-table APIs.
 
-### Known Limitations
+## master-of-hwp-studio [0.8.2] - 2026-04-23 (superseded by 0.8.3 correction)
 
-- Creating a nested table ("셀 안에 또 표") is temporarily unavailable. Users can still
-  insert body-level tables, which round-trip cleanly. Tracking upstream at
-  https://github.com/edwardkim/rhwp — will re-enable the feature once the serializer fix
-  lands and we rebuild the vendored WASM.
+### Fixed
+
+- Adds a studio-level safety patch that stops `createTableInCell` /
+  `insertTextInNestedCell` from reaching the editor, instead inserting the
+  requested table at body level below the outer table. Prevents the Hancom
+  layout split that users saw when saving after a "table inside a cell" edit.
+
+### Known (at the time; corrected in 0.8.3)
+
+- This entry originally described the symptom as "76% content loss"; that was a
+  misreading of `master_of_hwp.section_texts` output after the inner table had
+  drifted. No content was ever lost; the nested table was rendered in the wrong
+  place by the HWP5 layout engine. See 0.8.3 above for the corrected analysis.
 
 ## master-of-hwp-studio [0.2.0] - 2026-04-21
 
