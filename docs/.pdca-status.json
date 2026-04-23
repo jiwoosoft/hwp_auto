@@ -1,14 +1,27 @@
 {
   "version": "2.0",
-  "lastUpdated": "2026-04-20T10:41:34.389Z",
+  "lastUpdated": "2026-04-23T04:27:29.430Z",
   "activeFeatures": [
     "bridges",
     "mcp-server",
     "tests",
     "gui",
-    "orchestration"
+    "orchestration",
+    "master_of_hwp",
+    "core",
+    "operations",
+    "ai",
+    "fidelity",
+    "adapters",
+    "unit",
+    "integration",
+    "scripts",
+    "master_of_hwp_studio",
+    "web",
+    "commands",
+    "rhwp"
   ],
-  "primaryFeature": "orchestration",
+  "primaryFeature": "web",
   "features": {
     "bridges": {
       "phase": "do",
@@ -43,7 +56,7 @@
       "documents": {},
       "timestamps": {
         "started": "2026-04-19T14:04:20.273Z",
-        "lastUpdated": "2026-04-19T14:04:51.229Z"
+        "lastUpdated": "2026-04-21T05:34:09.417Z"
       }
     },
     "gui": {
@@ -69,6 +82,162 @@
         "started": "2026-04-20T10:28:36.914Z",
         "lastUpdated": "2026-04-20T10:41:34.389Z"
       }
+    },
+    "master_of_hwp": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:28:48.349Z",
+        "lastUpdated": "2026-04-20T15:28:48.349Z"
+      }
+    },
+    "core": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:28:50.686Z",
+        "lastUpdated": "2026-04-21T02:28:34.443Z"
+      }
+    },
+    "operations": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:29:07.156Z",
+        "lastUpdated": "2026-04-20T15:29:07.156Z"
+      }
+    },
+    "ai": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:29:09.703Z",
+        "lastUpdated": "2026-04-22T03:34:15.075Z"
+      }
+    },
+    "fidelity": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:29:24.960Z",
+        "lastUpdated": "2026-04-20T15:30:26.475Z"
+      }
+    },
+    "adapters": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:29:41.577Z",
+        "lastUpdated": "2026-04-20T16:05:46.934Z"
+      }
+    },
+    "unit": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:30:01.905Z",
+        "lastUpdated": "2026-04-21T02:31:14.675Z"
+      }
+    },
+    "integration": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T15:56:16.095Z",
+        "lastUpdated": "2026-04-21T02:28:47.208Z"
+      }
+    },
+    "scripts": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-20T16:08:18.509Z",
+        "lastUpdated": "2026-04-20T16:08:34.877Z"
+      }
+    },
+    "master_of_hwp_studio": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-21T05:32:23.205Z",
+        "lastUpdated": "2026-04-23T04:27:21.292Z"
+      }
+    },
+    "web": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-21T05:42:48.840Z",
+        "lastUpdated": "2026-04-23T04:27:29.430Z"
+      }
+    },
+    "commands": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-22T12:27:29.646Z",
+        "lastUpdated": "2026-04-22T15:13:14.662Z"
+      }
+    },
+    "rhwp": {
+      "phase": "do",
+      "phaseNumber": 3,
+      "matchRate": null,
+      "iterationCount": 0,
+      "requirements": [],
+      "documents": {},
+      "timestamps": {
+        "started": "2026-04-22T12:27:41.163Z",
+        "lastUpdated": "2026-04-22T15:13:29.934Z"
+      }
     }
   },
   "pipeline": {
@@ -79,246 +248,606 @@
   "session": {
     "startedAt": "2026-04-19T12:20:35.944Z",
     "onboardingCompleted": false,
-    "lastActivity": "2026-04-20T10:41:34.389Z"
+    "lastActivity": "2026-04-23T04:27:29.430Z"
   },
   "history": [
     {
-      "timestamp": "2026-04-19T13:11:27.244Z",
-      "feature": "bridges",
+      "timestamp": "2026-04-21T14:17:41.767Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T13:11:38.960Z",
-      "feature": "bridges",
+      "timestamp": "2026-04-21T14:18:06.836Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T13:12:28.633Z",
-      "feature": "bridges",
+      "timestamp": "2026-04-21T14:18:13.689Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T13:12:33.780Z",
-      "feature": "bridges",
+      "timestamp": "2026-04-21T14:19:19.549Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T13:12:46.232Z",
-      "feature": "bridges",
+      "timestamp": "2026-04-21T14:20:18.282Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T13:52:36.170Z",
-      "feature": "mcp-server",
+      "timestamp": "2026-04-21T14:24:13.836Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T14:04:20.273Z",
-      "feature": "tests",
+      "timestamp": "2026-04-21T14:24:44.971Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T14:04:33.175Z",
-      "feature": "tests",
+      "timestamp": "2026-04-21T14:25:13.067Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-19T14:04:51.229Z",
-      "feature": "tests",
+      "timestamp": "2026-04-21T14:25:20.004Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T05:51:47.278Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:27:03.475Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:15:37.813Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:27:22.632Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:33:06.677Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:27:31.120Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:33:49.084Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:27:52.279Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:57:46.986Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:37:09.921Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:57:53.628Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:37:24.533Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T06:58:00.986Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:37:37.780Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:01:31.798Z",
-      "feature": "mcp-server",
+      "timestamp": "2026-04-21T14:49:20.548Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:01:39.610Z",
-      "feature": "mcp-server",
+      "timestamp": "2026-04-21T14:49:52.942Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:01:52.585Z",
-      "feature": "mcp-server",
+      "timestamp": "2026-04-21T14:50:02.045Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:01:57.647Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:50:17.357Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:02:14.713Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:53:10.473Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:03:33.162Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:53:28.831Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:03:41.375Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:54:06.842Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:12:08.834Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:54:29.293Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:12:34.391Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:54:38.492Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:14:15.808Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T14:54:45.926Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:17:09.182Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:04:20.324Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:25:26.168Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:04:47.624Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:25:35.631Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:13:02.402Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:26:24.770Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:14:37.981Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T07:26:35.729Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:19:23.292Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:14:46.880Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T15:24:45.036Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:15:10.389Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T16:13:50.285Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:15:20.586Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T16:14:03.022Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:19:34.352Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T23:35:56.267Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:28:36.914Z",
-      "feature": "orchestration",
+      "timestamp": "2026-04-21T23:36:26.542Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:29:35.019Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T23:48:45.297Z",
+      "feature": "ai",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:29:53.556Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T23:49:02.206Z",
+      "feature": "ai",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:30:00.426Z",
-      "feature": "gui",
+      "timestamp": "2026-04-21T23:49:19.269Z",
+      "feature": "master_of_hwp_studio",
       "phase": "do",
       "action": "updated"
     },
     {
-      "timestamp": "2026-04-20T10:41:34.389Z",
-      "feature": "orchestration",
+      "timestamp": "2026-04-21T23:49:26.920Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:49:32.832Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:49:43.011Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:50:20.496Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:50:28.504Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:50:42.788Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:51:01.900Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:51:21.293Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-21T23:51:34.648Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:23:56.591Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:24:06.572Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:24:29.292Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:24:35.405Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:24:42.268Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:24:48.877Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:25:21.425Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:25:45.131Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:25:57.847Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:26:12.116Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:26:28.684Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T02:27:03.277Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:32:25.689Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:32:36.321Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:32:50.099Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:33:09.547Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:33:20.228Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:33:31.469Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:33:59.801Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:34:08.377Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T03:34:15.075Z",
+      "feature": "ai",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T06:27:24.930Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T06:27:35.205Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T06:27:52.952Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T06:37:40.896Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T06:38:12.091Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:46:01.152Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:46:11.439Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:46:21.340Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:47:43.275Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:48:25.646Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:48:52.258Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:57:50.494Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T10:58:03.142Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T11:09:06.565Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T11:32:12.677Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T11:32:26.232Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T11:32:50.699Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T12:27:29.646Z",
+      "feature": "commands",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T12:27:41.163Z",
+      "feature": "rhwp",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T12:55:51.242Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T12:56:02.733Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T14:14:29.426Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T14:14:38.073Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T15:13:14.662Z",
+      "feature": "commands",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T15:13:29.934Z",
+      "feature": "rhwp",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T15:24:22.927Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T23:58:15.196Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-22T23:58:30.638Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-23T02:24:04.319Z",
+      "feature": "web",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-23T04:27:21.292Z",
+      "feature": "master_of_hwp_studio",
+      "phase": "do",
+      "action": "updated"
+    },
+    {
+      "timestamp": "2026-04-23T04:27:29.430Z",
+      "feature": "web",
       "phase": "do",
       "action": "updated"
     }

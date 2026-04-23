@@ -327,19 +327,23 @@ async function applyEditToEditor(preview, { mode, isTable }) {
     const inCellNow = !!(liveStart && liveStart.parentParaIndex !== undefined);
 
     if (isTable) {
-      // 셀 안이면 중첩 표 API 호출 (현재: 골격만 생성, 내용 채우기는 후속 작업)
+      // ⚠ 중첩 표(createTableInCell) 경로는 저장 시 원본 본문의 76% 이상이
+      // 사라지는 rhwp Rust 직렬화 버그를 트리거한다 (2026-04-23 확인).
+      // 안전 패치: 셀 내부 삽입 요청이 와도 외부 표 바로 아래 본문 레벨에
+      // 삽입해서 데이터 손실을 막는다. 업스트림 rhwp 수정 시까지 유지.
       if (inCellNow) {
+        const afterOuterPara = Number(liveStart.parentParaIndex ?? 0) + 1;
+        addBubble(
+          'system',
+          '⚠ 셀 안에 표를 넣으면 저장 시 본문이 대량 손실되는 문제가 있어, 외부 표 바로 아래에 삽입합니다. (업스트림 수정 전까지 임시 조치)',
+        );
         return sendEditorRequest('applyEditTable', {
           section: Number(liveStart.sectionIndex ?? 0),
-          startPara: 0, endPara: 0, startChar: 0, endChar: 0,
+          startPara: afterOuterPara,
+          endPara: afterOuterPara,
+          startChar: 0,
+          endChar: 0,
           table: preview.table,
-          cell: {
-            parentParaIndex: Number(liveStart.parentParaIndex),
-            controlIndex: Number(liveStart.controlIndex ?? 0),
-            cellIndex: Number(liveStart.cellIndex ?? 0),
-            cellParaIndex: Number(liveStart.cellParaIndex ?? 0),
-            charOffset: Number(liveStart.charOffset ?? 0),
-          },
         });
       }
       return sendEditorRequest('applyEditTable', {

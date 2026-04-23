@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## master-of-hwp-studio [0.8.2] - 2026-04-23
+
+### Fixed
+
+- **Nested-table content loss (CRITICAL data-safety fix)**: 0.8.0/0.8.1 "table inside a cell"
+  (`createTableInCell` + `insertTextInNestedCell`) triggered an `export_hwp` serialization bug
+  that dropped ~76% of the outer document's body content on save. Verified against a teacher
+  template (`가정통신_20260421233205.hwp`): 587 characters → 142 characters after round-trip.
+- Root cause is in rhwp's Rust HWP5 serializer (`src/serializer/body_text.rs` /
+  `src/serializer/control.rs`), not in this project. While the insert operations succeed
+  at the IR level (verified with `insert_text_in_nested_cell_native` returning `ok:true`
+  for every cell and `export_hwp_verify recovered:true`), the on-disk bytes lose
+  outer-cell sibling paragraphs.
+- Interim safety patch: `studio/master_of_hwp_studio/web/app.js` now intercepts any
+  "insert table inside cell" request and routes it to a **body-level insertion** just
+  below the outer table. The user sees a one-line notice: `⚠ 셀 안에 표를 넣으면 저장 시 본문이
+  대량 손실되는 문제가 있어, 외부 표 바로 아래에 삽입합니다.`
+- HWPX export was also evaluated as a workaround but produces files Hancom Office flags as
+  corrupted (empty `<hs:sec>` — zero tables and zero `<hp:t>` fragments), so it is not used.
+
+### Added
+
+- `patches/rhwp-nested-tables/` — 4 recovered Rust edits (`create_table_in_cell_native`,
+  `insert_text_in_nested_cell_native`, and their WASM bindings) extracted from prior Claude
+  Code session transcripts after the original `/tmp/rhwp/` build workspace was lost. Kept
+  for the future upstream PR against edwardkim/rhwp and for local re-application when the
+  serializer bug is fixed.
+
+### Known Limitations
+
+- Creating a nested table ("셀 안에 또 표") is temporarily unavailable. Users can still
+  insert body-level tables, which round-trip cleanly. Tracking upstream at
+  https://github.com/edwardkim/rhwp — will re-enable the feature once the serializer fix
+  lands and we rebuild the vendored WASM.
+
 ## master-of-hwp-studio [0.2.0] - 2026-04-21
 
 ### Added
