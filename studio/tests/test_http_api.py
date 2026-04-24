@@ -13,25 +13,37 @@ import threading
 from pathlib import Path
 
 import pytest
+from master_of_hwp_studio import server as studio_server_module
 from master_of_hwp_studio.server import run as run_studio_server
 
 SAMPLES_DIR = Path(__file__).resolve().parents[2] / "samples" / "public-official"
 HWPX_SAMPLE = SAMPLES_DIR / "table-vpos-01.hwpx"
 
 
-def _post_json(host: str, port: int, path: str, body: dict[str, object]) -> dict[str, object]:
+def _post_json(
+    host: str,
+    port: int,
+    path: str,
+    body: dict[str, object],
+    *,
+    headers: dict[str, str] | None = None,
+) -> tuple[int, dict[str, object]]:
     conn = http.client.HTTPConnection(host, port, timeout=5)
     payload = json.dumps(body).encode("utf-8")
+    request_headers = {"Content-Type": "application/json"}
+    if headers:
+        request_headers.update(headers)
     conn.request(
         "POST",
         path,
         body=payload,
-        headers={"Content-Type": "application/json"},
+        headers=request_headers,
     )
     response = conn.getresponse()
     data = response.read().decode("utf-8")
+    status = response.status
     conn.close()
-    return dict(json.loads(data))
+    return status, dict(json.loads(data))
 
 
 def _get_json(host: str, port: int, path: str) -> dict[str, object]:
@@ -70,7 +82,7 @@ def test_api_status_returns_ok(studio_server: tuple[str, int]) -> None:
 @pytest.mark.skipif(not HWPX_SAMPLE.exists(), reason="HWPX sample missing")
 def test_api_browse_lists_sample_directory(studio_server: tuple[str, int]) -> None:
     host, port = studio_server
-    payload = _post_json(host, port, "/api/browse", {"path": str(SAMPLES_DIR)})
+    _status, payload = _post_json(host, port, "/api/browse", {"path": str(SAMPLES_DIR)})
     assert payload["ok"] is True
     entries = payload["data"]["entries"]
     names = [entry["name"] for entry in entries]
@@ -80,11 +92,11 @@ def test_api_browse_lists_sample_directory(studio_server: tuple[str, int]) -> No
 @pytest.mark.skipif(not HWPX_SAMPLE.exists(), reason="HWPX sample missing")
 def test_api_open_then_structure(studio_server: tuple[str, int]) -> None:
     host, port = studio_server
-    open_resp = _post_json(host, port, "/api/open", {"path": str(HWPX_SAMPLE)})
+    _status, open_resp = _post_json(host, port, "/api/open", {"path": str(HWPX_SAMPLE)})
     assert open_resp["ok"] is True
     document_id = open_resp["data"]["document_id"]
     assert isinstance(document_id, str)
-    structure = _post_json(host, port, "/api/structure", {"document_id": document_id})
+    _status, structure = _post_json(host, port, "/api/structure", {"document_id": document_id})
     assert structure["ok"] is True
     data = structure["data"]
     assert data["sections_count"] == 1
@@ -95,24 +107,24 @@ def test_api_open_then_structure(studio_server: tuple[str, int]) -> None:
 @pytest.mark.skipif(not HWPX_SAMPLE.exists(), reason="HWPX sample missing")
 def test_api_open_rejects_missing_path(studio_server: tuple[str, int]) -> None:
     host, port = studio_server
-    resp = _post_json(host, port, "/api/open", {"path": ""})
+    _status, resp = _post_json(host, port, "/api/open", {"path": ""})
     assert resp["ok"] is False
 
 
 @pytest.mark.skipif(not HWPX_SAMPLE.exists(), reason="HWPX sample missing")
 def test_api_structure_rejects_unknown_document_id(studio_server: tuple[str, int]) -> None:
     host, port = studio_server
-    resp = _post_json(host, port, "/api/structure", {"document_id": "bogus"})
+    _status, resp = _post_json(host, port, "/api/structure", {"document_id": "bogus"})
     assert resp["ok"] is False
 
 
 @pytest.mark.skipif(not HWPX_SAMPLE.exists(), reason="HWPX sample missing")
 def test_api_save_writes_file(studio_server: tuple[str, int], tmp_path: Path) -> None:
     host, port = studio_server
-    open_resp = _post_json(host, port, "/api/open", {"path": str(HWPX_SAMPLE)})
+    _status, open_resp = _post_json(host, port, "/api/open", {"path": str(HWPX_SAMPLE)})
     document_id = open_resp["data"]["document_id"]
     output = tmp_path / "saved.hwpx"
-    resp = _post_json(
+    _status, resp = _post_json(
         host,
         port,
         "/api/save",
@@ -121,3 +133,65 @@ def test_api_save_writes_file(studio_server: tuple[str, int], tmp_path: Path) ->
     assert resp["ok"] is True
     assert output.exists()
     assert output.stat().st_size > 0
+
+
+def test_api_rejects_cross_origin_post(studio_server: tuple[str, int]) -> None:
+    host, port = studio_server
+    status, payload = _post_json(
+        host,
+        port,
+        "/api/default-save-dir",
+        {},
+        headers={"Origin": "https://example.com"},
+    )
+    assert status == 403
+    assert payload["ok"] is False
+
+
+def test_api_allows_localhost_origin(studio_server: tuple[str, int]) -> None:
+    host, port = studio_server
+    status, payload = _post_json(
+        host,
+        port,
+        "/api/default-save-dir",
+        {},
+        headers={"Origin": f"http://127.0.0.1:{port}"},
+    )
+    assert status == 200
+    assert payload["ok"] is True
+
+
+def test_api_rejects_non_document_open(studio_server: tuple[str, int], tmp_path: Path) -> None:
+    host, port = studio_server
+    note = tmp_path / "note.txt"
+    note.write_text("not a document", encoding="utf-8")
+    status, payload = _post_json(host, port, "/api/open", {"path": str(note)})
+    assert status == 200
+    assert payload["ok"] is False
+
+
+def test_api_file_bytes_rejects_unsupported_extension(
+    studio_server: tuple[str, int], tmp_path: Path
+) -> None:
+    host, port = studio_server
+    secret = tmp_path / "secret.json"
+    secret.write_text('{"token": "nope"}', encoding="utf-8")
+    status, payload = _post_json(host, port, "/api/file-bytes", {"path": str(secret)})
+    assert status == 200
+    assert payload["ok"] is False
+
+
+def test_api_json_response_handles_lone_surrogates(studio_server: tuple[str, int]) -> None:
+    host, port = studio_server
+
+    def handler(_body: dict[str, object]) -> dict[str, object]:
+        return {"ok": True, "data": {"text": "\ud800"}}
+
+    studio_server_module._POST_ROUTES["/api/test-surrogate"] = handler
+    try:
+        status, payload = _post_json(host, port, "/api/test-surrogate", {})
+    finally:
+        del studio_server_module._POST_ROUTES["/api/test-surrogate"]
+
+    assert status == 200
+    assert payload == {"ok": True, "data": {"text": "?"}}

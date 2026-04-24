@@ -28,6 +28,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install -e ".[dev]"
+          pip install -e "./studio[dev]"
 
       - name: Ruff lint
         run: ruff check master_of_hwp tests
@@ -40,6 +41,9 @@ jobs:
 
       - name: Run tests
         run: pytest --cov=master_of_hwp --cov-report=term-missing -m "not fidelity or fidelity"
+
+      - name: Run Studio tests
+        run: pytest studio/tests
 
       - name: Upload coverage artifact
         if: matrix.python-version == '3.12'

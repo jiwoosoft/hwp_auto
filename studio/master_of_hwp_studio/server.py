@@ -15,6 +15,7 @@ import binascii
 import contextlib
 import json
 import os
+import threading
 import uuid
 from dataclasses import dataclass
 from http import HTTPStatus
@@ -28,6 +29,10 @@ from master_of_hwp import HwpDocument
 
 STATIC_FILES = {"/", "/index.html", "/app.css", "/app.js"}
 ALLOWED_EXTENSIONS = {".hwp", ".hwpx", ".txt", ".md"}
+MAX_JSON_BODY_BYTES = 25 * 1024 * 1024
+MAX_FILE_BYTES_RESPONSE = 100 * 1024 * 1024
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024
+LOCALHOST_NAMES = {"localhost", "127.0.0.1", "::1"}
 
 
 @dataclass
@@ -39,27 +44,28 @@ class _Session:
 
 
 class _DocumentRegistry:
-    """Thread-unsafe registry of open documents. OK because stdlib
-    ThreadingHTTPServer serializes per-connection handler calls and
-    the server is single-user / localhost only.
-    """
+    """In-memory registry of open documents for a single-user Studio session."""
 
     def __init__(self) -> None:
         self._sessions: dict[str, _Session] = {}
+        self._lock = threading.RLock()
 
     def open(self, path: Path) -> tuple[str, _Session]:
         doc = HwpDocument.open(path)
         document_id = uuid.uuid4().hex
         session = _Session(path=path, doc=doc)
-        self._sessions[document_id] = session
+        with self._lock:
+            self._sessions[document_id] = session
         return document_id, session
 
     def get(self, document_id: str) -> _Session | None:
-        return self._sessions.get(document_id)
+        with self._lock:
+            return self._sessions.get(document_id)
 
     def replace(self, document_id: str, new_doc: HwpDocument) -> None:
-        if document_id in self._sessions:
-            self._sessions[document_id].doc = new_doc
+        with self._lock:
+            if document_id in self._sessions:
+                self._sessions[document_id].doc = new_doc
 
 
 _registry = _DocumentRegistry()
@@ -109,6 +115,18 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_POST(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
+        if not self._is_allowed_browser_request():
+            self._send_json(
+                {"ok": False, "message": "Forbidden cross-origin request"},
+                status=HTTPStatus.FORBIDDEN,
+            )
+            return
+        if not self._has_json_content_type():
+            self._send_json(
+                {"ok": False, "message": "Content-Type must be application/json"},
+                status=HTTPStatus.UNSUPPORTED_MEDIA_TYPE,
+            )
+            return
         body = self._read_json_body()
         if body is None:
             self._send_json(
@@ -165,6 +183,8 @@ class StudioHandler(BaseHTTPRequestHandler):
             length = int(self.headers.get("Content-Length", "0"))
         except ValueError:
             return None
+        if length > MAX_JSON_BODY_BYTES:
+            return None
         if length <= 0:
             return {}
         raw = self.rfile.read(length)
@@ -182,12 +202,24 @@ class StudioHandler(BaseHTTPRequestHandler):
         *,
         status: HTTPStatus = HTTPStatus.OK,
     ) -> None:
-        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8", errors="replace")
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
+
+    def _has_json_content_type(self) -> bool:
+        content_type = self.headers.get("Content-Type", "")
+        media_type = content_type.split(";", maxsplit=1)[0].strip().lower()
+        return media_type == "application/json"
+
+    def _is_allowed_browser_request(self) -> bool:
+        for header_name in ("Origin", "Referer"):
+            value = self.headers.get(header_name)
+            if value and not _is_local_http_url(value):
+                return False
+        return True
 
 
 # ---------- endpoint implementations ----------------------------------------
@@ -262,6 +294,8 @@ def _handle_open(body: dict[str, Any]) -> dict[str, Any]:
     if not raw:
         return {"ok": False, "message": "path is required"}
     path = Path(raw).expanduser().resolve()
+    if path.suffix.lower() not in {".hwp", ".hwpx"}:
+        return {"ok": False, "message": f"Unsupported document extension: {path.suffix}"}
     try:
         document_id, session = _registry.open(path)
     except Exception as exc:  # noqa: BLE001
@@ -344,6 +378,13 @@ def _handle_file_bytes(body: dict[str, Any]) -> dict[str, Any]:
     path = Path(raw).expanduser().resolve()
     if not path.exists():
         return {"ok": False, "message": f"Not found: {path}"}
+    if not path.is_file():
+        return {"ok": False, "message": f"Not a file: {path}"}
+    if path.suffix.lower() not in ALLOWED_EXTENSIONS:
+        return {"ok": False, "message": f"Unsupported file extension: {path.suffix}"}
+    size = path.stat().st_size
+    if size > MAX_FILE_BYTES_RESPONSE:
+        return {"ok": False, "message": f"File is too large: {size} bytes"}
     data = path.read_bytes()
     return {
         "ok": True,
@@ -765,6 +806,14 @@ def _content_type_for(filename: str) -> str:
     return "application/octet-stream"
 
 
+def _is_local_http_url(value: str) -> bool:
+    parsed = urlparse(value)
+    if parsed.scheme not in {"http", "https"}:
+        return False
+    host = parsed.hostname or ""
+    return host.lower() in LOCALHOST_NAMES
+
+
 def _handle_upload_image(body: dict[str, Any]) -> dict[str, Any]:
     """Save a clipboard-pasted image as a temp file and return its path.
 
@@ -783,6 +832,8 @@ def _handle_upload_image(body: dict[str, Any]) -> dict[str, Any]:
         data = base64.b64decode(raw, validate=True)
     except (ValueError, binascii.Error) as exc:
         return {"ok": False, "message": f"Invalid base64: {exc}"}
+    if len(data) > MAX_UPLOAD_BYTES:
+        return {"ok": False, "message": f"Upload is too large: {len(data)} bytes"}
 
     suffix = ".png"
     if "jpeg" in mime or "jpg" in mime:
