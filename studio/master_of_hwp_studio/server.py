@@ -226,17 +226,15 @@ class StudioHandler(BaseHTTPRequestHandler):
 
 
 def _handle_status() -> dict[str, Any]:
-    import shutil
-
     providers: list[str] = []
     provider_sources: dict[str, str] = {}
-    if shutil.which("claude"):
+    if _build_claude_cli() is not None:
         providers.append("claude")
         provider_sources["claude"] = "cli"
     elif os.environ.get("ANTHROPIC_API_KEY"):
         providers.append("claude")
         provider_sources["claude"] = "api"
-    if shutil.which("codex"):
+    if _build_codex_cli() is not None:
         providers.append("codex")
         provider_sources["codex"] = "cli"
     elif os.environ.get("OPENAI_API_KEY"):
@@ -247,7 +245,7 @@ def _handle_status() -> dict[str, Any]:
         "data": {
             "version": "0.4.0",
             "integration": {"data": {"ready": True}},
-            "providers": providers or ["claude", "codex"],
+            "providers": providers,
             "provider_sources": provider_sources,
             "editor_url": "http://127.0.0.1:7700/",
         },

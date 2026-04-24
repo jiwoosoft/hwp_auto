@@ -175,6 +175,11 @@ class _CLIProviderBase:
             raise RuntimeError(f"{self.display_name} CLI ({resolved!r}) not found on PATH.")
         self._executable_path = discovered
         self._timeout = timeout
+        if not _cli_can_start(self._executable_path):
+            raise RuntimeError(
+                f"{self.display_name} CLI ({self._executable_path!r}) is on PATH "
+                "but cannot be executed."
+            )
 
     def _run(self, args: list[str], *, stdin: str | None = None) -> str:
         # Windows: .cmd/.bat scripts require shell=True to execute via subprocess.
@@ -204,6 +209,8 @@ class _CLIProviderBase:
             )
         except subprocess.TimeoutExpired as exc:
             raise RuntimeError(f"{self.display_name} CLI timed out after {self._timeout}s") from exc
+        except OSError as exc:
+            raise RuntimeError(f"{self.display_name} CLI failed to start: {exc}") from exc
         if result.returncode != 0:
             stderr_tail = result.stderr.strip().splitlines()[-5:]
             raise RuntimeError(
@@ -353,3 +360,18 @@ def _wsl_has_command(wsl_path: str, target: str) -> bool:
     except (OSError, subprocess.TimeoutExpired):
         return False
     return result.returncode == 0 and bool(result.stdout.strip())
+
+
+def _cli_can_start(executable_path: str) -> bool:
+    """Return False for PATH shims that Windows exposes but refuses to run."""
+    try:
+        result = subprocess.run(  # noqa: S603
+            [executable_path, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return False
+    return result.returncode == 0
