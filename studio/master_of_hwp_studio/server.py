@@ -691,9 +691,20 @@ def _generate_table_content(
     except Exception:  # noqa: BLE001
         return None
 
-    cells = payload.get("cells") if isinstance(payload, dict) else None
+    return _normalize_table_payload(payload)
+
+
+def _normalize_table_payload(payload: Any) -> dict[str, Any] | None:
+    """Coerce an LLM table payload into the editor's {rows, cols, cells} shape."""
+    if not isinstance(payload, dict):
+        return None
+
+    cells = payload.get("cells")
+    if cells is None and isinstance(payload.get("table"), dict):
+        cells = payload["table"].get("cells")
     if not isinstance(cells, list) or not cells:
         return None
+
     # Coerce every cell to a string and every row to a list.
     normalized: list[list[str]] = []
     for row in cells:
@@ -702,6 +713,8 @@ def _generate_table_content(
         normalized.append([str(item) if item is not None else "" for item in row])
     # Pad rows to the max column count so HWP renders a rectangular table.
     cols = max(len(r) for r in normalized)
+    if cols <= 0:
+        return None
     for row in normalized:
         while len(row) < cols:
             row.append("")

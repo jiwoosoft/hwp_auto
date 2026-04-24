@@ -109,10 +109,30 @@ function renderTablePreviewHtml(table) {
   return `<table class="hwp-table-preview">${rows}</table>`;
 }
 
+function normalizeTablePayload(table) {
+  const rawCells = table?.cells;
+  if (!Array.isArray(rawCells) || rawCells.length === 0) return null;
+  const cells = rawCells.map((row) => {
+    if (!Array.isArray(row)) return null;
+    return row.map((cell) => String(cell ?? ''));
+  });
+  if (cells.some((row) => row === null)) return null;
+  const cols = cells.reduce((max, row) => Math.max(max, row.length), 0);
+  if (cols <= 0) return null;
+  for (const row of cells) {
+    while (row.length < cols) row.push('');
+  }
+  return { ...table, rows: cells.length, cols, cells };
+}
+
 function addPreviewCard(preview) {
+  const normalizedTable = normalizeTablePayload(preview.table);
+  if (normalizedTable) {
+    preview = { ...preview, table: normalizedTable };
+  }
   const providerLabel = preview.provider || currentProvider();
   const label = preview.selection ? '선택 영역' : `문단 ${preview.paragraph_index}`;
-  const isTable = preview.content_type === 'table' && preview.table;
+  const isTable = preview.content_type === 'table' && normalizedTable;
   const typeChip = isTable ? ' · <span class="type-chip">표</span>' : '';
   const card = document.createElement('div');
   card.className = 'preview-card';

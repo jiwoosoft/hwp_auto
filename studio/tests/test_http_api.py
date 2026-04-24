@@ -195,3 +195,25 @@ def test_api_json_response_handles_lone_surrogates(studio_server: tuple[str, int
 
     assert status == 200
     assert payload == {"ok": True, "data": {"text": "?"}}
+
+
+def test_table_payload_normalization_derives_dimensions() -> None:
+    payload = {
+        "table": {
+            "cells": [
+                ["name", "value"],
+                ["alpha"],
+            ]
+        }
+    }
+
+    table = studio_server_module._normalize_table_payload(payload)
+
+    assert table == {
+        "rows": 2,
+        "cols": 2,
+        "cells": [
+            ["name", "value"],
+            ["alpha", ""],
+        ],
+    }
