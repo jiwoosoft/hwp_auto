@@ -15,6 +15,7 @@ mcp-server/.venv/
 
 # Node
 node_modules/
+.tools/
 mcp-server/bridges/node_modules/
 vendor/rhwp-main/rhwp-studio/node_modules/
 
@@ -39,6 +40,7 @@ outputs/pytest_*.hwpx
 outputs/manual_*.hwpx
 outputs/blank_generated.*
 outputs/edited_from_session.*
+studio-*.log
 
 # OS/editor
 .DS_Store

@@ -194,9 +194,7 @@ class _CLIProviderBase:
             ext = Path(self._executable_path).suffix.lower()
             if ext in {".cmd", ".bat"}:
                 use_shell = True
-                import shlex
-
-                cmd = shlex.join([self._executable_path, *args])
+                cmd = subprocess.list2cmdline([self._executable_path, *args])
         try:
             result = subprocess.run(  # noqa: S603 — executable resolved via shutil.which
                 cmd,
